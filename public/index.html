@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BTDT Generator</title>
+<style>
+body{
+font-family:Arial;
+background:#f6e4cc;
+text-align:center;
+padding:40px;
+}
+textarea{
+width:90%;
+max-width:500px;
+height:120px;
+padding:10px;
+}
+button{
+margin-top:10px;
+padding:10px 20px;
+font-size:16px;
+cursor:pointer;
+}
+img{
+margin-top:20px;
+max-width:500px;
+width:90%;
+}
+</style>
+</head>
+<body>
+
+<h1>Been There Done Tat Generator</h1>
+
+<textarea id="prompt" placeholder="Describe your tattoo idea"></textarea><br>
+<button onclick="generate()">Generate</button>
+
+<div id="result"></div>
+
+<script>
+async function generate(){
+  const prompt = document.getElementById("prompt").value;
+  const result = document.getElementById("result");
+  result.innerHTML = "Generating...";
+
+  const res = await fetch("/api/generate",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({prompt})
+  });
+
+  const data = await res.json();
+
+  if(data.data){
+    const img = document.createElement("img");
+    img.src = "data:image/png;base64," + data.data[0].b64_json;
+    result.innerHTML="";
+    result.appendChild(img);
+  }else{
+    result.innerHTML = "Error generating image";
+  }
+}
+</script>
+
+</body>
+</html>
