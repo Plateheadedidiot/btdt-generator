@@ -6,63 +6,176 @@
 <title>BTDT Generator</title>
 <style>
 body{
-font-family:Arial;
-background:#f6e4cc;
-text-align:center;
-padding:40px;
+  font-family:Arial,sans-serif;
+  background:#f6e4cc;
+  text-align:center;
+  padding:40px;
+  margin:0;
+}
+.wrap{
+  max-width:980px;
+  margin:0 auto;
+}
+h1{
+  margin-bottom:10px;
+}
+p{
+  line-height:1.5;
 }
 textarea{
-width:90%;
-max-width:500px;
-height:120px;
-padding:10px;
+  width:90%;
+  max-width:700px;
+  height:130px;
+  padding:12px;
+  font-size:16px;
 }
 button{
-margin-top:10px;
-padding:10px 20px;
-font-size:16px;
-cursor:pointer;
+  margin-top:12px;
+  padding:12px 22px;
+  font-size:16px;
+  cursor:pointer;
 }
-img{
-margin-top:20px;
-max-width:500px;
-width:90%;
+#status{
+  margin-top:16px;
+  font-weight:bold;
+}
+#promptBox{
+  margin:20px auto 10px;
+  width:90%;
+  max-width:800px;
+  padding:14px;
+  background:#fff7ef;
+  border:2px solid #d6b18f;
+  border-radius:12px;
+  text-align:left;
+  white-space:pre-wrap;
+  display:none;
+}
+.grid{
+  margin-top:20px;
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+  gap:16px;
+}
+.card{
+  background:#fff8f2;
+  border:2px solid #d6b18f;
+  border-radius:12px;
+  padding:10px;
+}
+.card img{
+  width:100%;
+  border-radius:10px;
+  display:block;
+}
+.actions{
+  margin-top:10px;
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  justify-content:center;
+}
+.actions a{
+  text-decoration:none;
+  padding:8px 12px;
+  border-radius:8px;
+  background:#a5683a;
+  color:white;
+  font-size:14px;
+}
+.note{
+  margin-top:20px;
+  background:#fff7ef;
+  border:2px solid #d6b18f;
+  border-radius:12px;
+  padding:14px;
 }
 </style>
 </head>
 <body>
+<div class="wrap">
+  <h1>Been There Done Tat Generator</h1>
+  <p>Now set up to create 4 tattoo-stencil previews at a time, with black-and-white stencil rules automatically added in the backend.</p>
 
-<h1>Been There Done Tat Generator</h1>
+  <textarea id="prompt" placeholder="Describe your tattoo idea"></textarea><br>
+  <button onclick="generate()">Generate 4 Stencil Previews</button>
 
-<textarea id="prompt" placeholder="Describe your tattoo idea"></textarea><br>
-<button onclick="generate()">Generate</button>
+  <div id="status"></div>
+  <div id="promptBox"></div>
+  <div id="result" class="grid"></div>
 
-<div id="result"></div>
+  <div class="note">
+    Tip: shorter prompts usually give cleaner stencil results. Example:
+    <br><strong>ice cream frog tattoo, bold simple lines</strong>
+  </div>
+</div>
 
 <script>
 async function generate(){
-  const prompt = document.getElementById("prompt").value;
+  const prompt = document.getElementById("prompt").value.trim();
+  const status = document.getElementById("status");
   const result = document.getElementById("result");
-  result.innerHTML = "Generating...";
+  const promptBox = document.getElementById("promptBox");
 
-  const res = await fetch("/api/generate",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({prompt})
-  });
+  result.innerHTML = "";
+  promptBox.style.display = "none";
 
-  const data = await res.json();
+  if(!prompt){
+    status.textContent = "Enter a tattoo idea first.";
+    return;
+  }
 
-  if(data.data){
-    const img = document.createElement("img");
-    img.src = "data:image/png;base64," + data.data[0].b64_json;
-    result.innerHTML="";
-    result.appendChild(img);
-  }else{
-    result.innerHTML = "Error generating image";
+  status.textContent = "Generating 4 stencil previews...";
+
+  try{
+    const res = await fetch("/api/generate", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ prompt })
+    });
+
+    const data = await res.json();
+
+    if(!res.ok){
+      status.textContent = "Error.";
+      result.innerHTML = "<div class='card'>Error: " + (data.error || "Unknown error") + "</div>";
+      return;
+    }
+
+    status.textContent = "Done.";
+    promptBox.textContent = "Final prompt sent to the model:\n\n" + data.prompt;
+    promptBox.style.display = "block";
+
+    if(Array.isArray(data.images) && data.images.length){
+      data.images.forEach((img64, index) => {
+        const card = document.createElement("div");
+        card.className = "card";
+
+        const img = document.createElement("img");
+        img.src = "data:image/png;base64," + img64;
+        img.alt = "Stencil preview " + (index + 1);
+
+        const actions = document.createElement("div");
+        actions.className = "actions";
+
+        const download = document.createElement("a");
+        download.href = img.src;
+        download.download = `btdt-stencil-preview-${index + 1}.png`;
+        download.textContent = "Download";
+
+        actions.appendChild(download);
+        card.appendChild(img);
+        card.appendChild(actions);
+        result.appendChild(card);
+      });
+    } else {
+      result.innerHTML = "<div class='card'>Error: No images returned.</div>";
+    }
+  } catch(err){
+    status.textContent = "Error.";
+    result.innerHTML = "<div class='card'>Error: " + err.message + "</div>";
   }
 }
 </script>
-
 </body>
 </html>
