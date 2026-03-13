@@ -41,7 +41,6 @@ button:hover{transform:translateY(-1px);}
 #loaderStage{
   position:relative;
   width:min(92vw, 640px);
-  height:auto;
   margin:0 auto;
   aspect-ratio: 1024 / 1536;
 }
@@ -119,27 +118,21 @@ const frames = [
   "/loading/frame1.png",
   "/loading/frame2.png",
   "/loading/frame3.png",
-  "/loading/frame4.png",
-  "/loading/frame5.png",
-  "/loading/frame6.png",
-  "/loading/frame7.png",
-  "/loading/frame8.png"
+  "/loading/frame4.png"
 ];
 
 const captions = [
   {text:"Sketching idea...", sub:"Starting the stencil..."},
-  {text:"Adjusting lines...", sub:"Cleaning the shape..."},
-  {text:"Finalizing stencil...", sub:"Making it bolder..."},
-  {text:"Still cooking...", sub:"Cow refuses to rush art..."},
-  {text:"Sketching idea...", sub:"Starting the stencil..."},
-  {text:"Adjusting lines...", sub:"Cleaning the shape..."},
-  {text:"Finalizing stencil...", sub:"Making it bolder..."},
-  {text:"Almost done...", sub:"Cow is running on fumes..."}
+  {text:"Thinking it through...", sub:"Cleaning up the lines..."},
+  {text:"Finalizing stencil...", sub:"Making it bold..."},
+  {text:"Almost done...", sub:"Cow is out cold..."}
 ];
+
+const timings = [900, 900, 700, 1400];
 
 let frameIndex = 0;
 let activeSlot = "A";
-let animInterval = null;
+let animTimeout = null;
 let progressInterval = null;
 let simulatedProgress = 6;
 
@@ -164,6 +157,16 @@ function updateCaption(idx){
   document.getElementById("loadingSubtext").textContent = captions[idx].sub;
 }
 
+function scheduleNextFrame(){
+  clearTimeout(animTimeout);
+  animTimeout = setTimeout(() => {
+    frameIndex = (frameIndex + 1) % frames.length;
+    crossfadeTo(frames[frameIndex]);
+    updateCaption(frameIndex);
+    scheduleNextFrame();
+  }, timings[frameIndex]);
+}
+
 function startLoader(){
   document.getElementById("loader").style.display = "block";
   document.getElementById("bar").style.width = "6%";
@@ -174,15 +177,10 @@ function startLoader(){
   document.getElementById("frameA").classList.add("active");
   document.getElementById("frameB").classList.remove("active");
   updateCaption(0);
+  scheduleNextFrame();
 
-  animInterval = setInterval(() => {
-    frameIndex = (frameIndex + 1) % frames.length;
-    crossfadeTo(frames[frameIndex]);
-    updateCaption(frameIndex);
-  }, 700);
-
+  clearInterval(progressInterval);
   progressInterval = setInterval(() => {
-    // Fast at first, then slows down near the end
     if(simulatedProgress < 78){
       simulatedProgress += 6;
     } else if(simulatedProgress < 90){
@@ -195,7 +193,7 @@ function startLoader(){
 }
 
 function stopLoader(){
-  clearInterval(animInterval);
+  clearTimeout(animTimeout);
   clearInterval(progressInterval);
   document.getElementById("bar").style.width = "100%";
   setTimeout(() => {
