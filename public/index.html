@@ -1,175 +1,24 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BTDT Generator</title>
-<style>
-body{
-  font-family: Arial, sans-serif;
-  background:#f6e4cc;
-  text-align:center;
-  padding:40px;
-  color:#2f170b;
-}
-h1{margin-bottom:18px;}
-textarea{
-  width:90%;
-  max-width:560px;
-  height:120px;
-  padding:12px;
-  border:2px solid #2f170b;
-  border-radius:12px;
-}
-button{
-  margin-top:12px;
-  padding:12px 22px;
-  font-size:16px;
-  font-weight:700;
-  cursor:pointer;
-  border:2px solid #2f170b;
-  border-radius:12px;
-  background:#fff7ef;
-}
-img{margin-top:20px;max-width:700px;width:92%;}
-#loader{
-  display:none;
-  margin:24px auto 0;
-  max-width:760px;
-}
-#loader img{
-  max-width:100%;
-  width:100%;
-  border:3px solid #111;
-  border-radius:24px;
-  background:#fff;
-  box-shadow:8px 8px 0 #111;
-}
-#loadingText{
-  margin:14px 0 8px;
-  font-size:24px;
-  font-weight:900;
-}
-.progress{
-  width:min(92%, 360px);
-  height:18px;
-  border:3px solid #111;
-  background:#fff;
-  margin:12px auto;
-  border-radius:999px;
-  overflow:hidden;
-  box-shadow:4px 4px 0 #111;
-}
-.bar{
-  height:100%;
-  width:8%;
-  background:linear-gradient(90deg,#ff8ab4,#ffd36b);
-  transition:width .35s ease;
-}
-#result{margin-top:8px;}
-</style>
-</head>
-<body>
+<!DOCTYPE html><html><head><meta charset="UTF-8"><title>BTDT Generator</title></head>
+<body style="background:#f6e4cc;font-family:Arial;text-align:center;padding:40px;">
 <h1>Been There Done Tat Generator</h1>
-<textarea id="prompt" placeholder="Describe your tattoo idea"></textarea><br>
+<textarea id="prompt" style="width:90%;max-width:500px;height:120px;"></textarea><br>
 <button onclick="generate()">Generate</button>
-
-<div id="loader">
-  <img id="cow" src="/loading/frame1.png" alt="Cow loading animation">
-  <p id="loadingText">Sketching idea...</p>
-  <div class="progress"><div id="bar" class="bar"></div></div>
+<div id="loader" style="display:none;margin-top:20px;">
+<img id="cow" src="/loading/frame1.png" style="max-width:600px;"><p id="text">Sketching...</p>
 </div>
-
 <div id="result"></div>
-
 <script>
-const stages = [
-  { frames:["/loading/frame1.png","/loading/frame2.png","/loading/frame3.png"], text:"Sketching idea...", progress:22, speed:420 },
-  { frames:["/loading/frame4.png"], text:"Cleaning linework...", progress:45, speed:900 },
-  { frames:["/loading/frame5.png","/loading/frame6.png","/loading/frame7.png"], text:"Finalizing stencil...", progress:82, speed:420 },
-  { frames:["/loading/frame8.png"], text:"Almost done...", progress:95, speed:1000 }
-];
-
-let stageIndex = 0;
-let frameIndex = 0;
-let anim = null;
-let stageTimeouts = [];
-
-function renderFrame(){
-  const stage = stages[stageIndex];
-  document.getElementById("cow").src = stage.frames[frameIndex];
-  document.getElementById("loadingText").textContent = stage.text;
-  document.getElementById("bar").style.width = stage.progress + "%";
-}
-
-function playStage(){
-  clearInterval(anim);
-  frameIndex = 0;
-  renderFrame();
-  const stage = stages[stageIndex];
-  anim = setInterval(() => {
-    frameIndex = (frameIndex + 1) % stage.frames.length;
-    renderFrame();
-  }, stage.speed);
-}
-
-function startLoader(){
-  document.getElementById("loader").style.display = "block";
-  stageIndex = 0;
-  frameIndex = 0;
-  renderFrame();
-  playStage();
-
-  stageTimeouts.forEach(t => clearTimeout(t));
-  stageTimeouts = [
-    setTimeout(() => { if(document.getElementById("loader").style.display !== "none"){ stageIndex = 1; playStage(); } }, 2200),
-    setTimeout(() => { if(document.getElementById("loader").style.display !== "none"){ stageIndex = 2; playStage(); } }, 4300),
-    setTimeout(() => { if(document.getElementById("loader").style.display !== "none"){ stageIndex = 3; playStage(); } }, 7000)
-  ];
-}
-
-function stopLoader(){
-  clearInterval(anim);
-  stageTimeouts.forEach(t => clearTimeout(t));
-  document.getElementById("bar").style.width = "100%";
-  setTimeout(() => {
-    document.getElementById("loader").style.display = "none";
-  }, 180);
-}
-
+const frames=["/loading/frame1.png","/loading/frame2.png","/loading/frame3.png","/loading/frame4.png","/loading/frame5.png","/loading/frame6.png","/loading/frame7.png","/loading/frame8.png"];
+let i=0,anim;
+function start(){document.getElementById("loader").style.display="block";
+anim=setInterval(()=>{i=(i+1)%frames.length;document.getElementById("cow").src=frames[i];},500);}
+function stop(){clearInterval(anim);document.getElementById("loader").style.display="none";}
 async function generate(){
-  const prompt = document.getElementById("prompt").value.trim();
-  const result = document.getElementById("result");
-  result.innerHTML = "";
-  if(!prompt){
-    result.innerHTML = "Please enter a tattoo idea.";
-    return;
-  }
-
-  startLoader();
-
-  try{
-    const res = await fetch("/api/generate",{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({prompt})
-    });
-    const data = await res.json();
-    stopLoader();
-
-    if(data.data && data.data[0] && data.data[0].b64_json){
-      const img = document.createElement("img");
-      img.src = "data:image/png;base64," + data.data[0].b64_json;
-      img.alt = "Generated tattoo stencil";
-      result.appendChild(img);
-    } else {
-      result.innerHTML = "Error generating image";
-    }
-  } catch(e){
-    stopLoader();
-    result.innerHTML = "Error generating image";
-  }
+const p=document.getElementById("prompt").value;
+start();
+const r=await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:p})});
+const d=await r.json();
+stop();
+if(d.data){const img=document.createElement("img");img.src="data:image/png;base64,"+d.data[0].b64_json;document.getElementById("result").appendChild(img);}
 }
-</script>
-</body>
-</html>
+</script></body></html>
