@@ -12,9 +12,7 @@ body{
   padding:40px;
   color:#2f170b;
 }
-h1{
-  margin-bottom:18px;
-}
+h1{margin-bottom:18px;}
 textarea{
   width:90%;
   max-width:560px;
@@ -33,14 +31,7 @@ button{
   border-radius:12px;
   background:#fff7ef;
 }
-button:hover{
-  transform:translateY(-1px);
-}
-img{
-  margin-top:20px;
-  max-width:700px;
-  width:92%;
-}
+img{margin-top:20px;max-width:700px;width:92%;}
 #loader{
   display:none;
   margin:24px auto 0;
@@ -75,20 +66,16 @@ img{
   background:linear-gradient(90deg,#ff8ab4,#ffd36b);
   transition:width .35s ease;
 }
-#result{
-  margin-top:8px;
-}
+#result{margin-top:8px;}
 </style>
 </head>
 <body>
-
 <h1>Been There Done Tat Generator</h1>
-
 <textarea id="prompt" placeholder="Describe your tattoo idea"></textarea><br>
 <button onclick="generate()">Generate</button>
 
 <div id="loader">
-  <img id="cow" src="/loading/frame1.png" alt="Comic cow loading screen">
+  <img id="cow" src="/loading/frame1.png" alt="Cow loading animation">
   <p id="loadingText">Sketching idea...</p>
   <div class="progress"><div id="bar" class="bar"></div></div>
 </div>
@@ -97,16 +84,16 @@ img{
 
 <script>
 const stages = [
-  { frames:["/loading/frame1.png","/loading/frame2.png","/loading/frame3.png"], text:"Sketching idea...", progress:18, speed:520 },
-  { frames:["/loading/frame4.png"], text:"Cleaning linework...", progress:42, speed:900 },
-  { frames:["/loading/frame5.png","/loading/frame6.png","/loading/frame7.png"], text:"Finalizing stencil...", progress:76, speed:520 },
-  { frames:["/loading/frame8.png"], text:"Almost done...", progress:94, speed:1000 }
+  { frames:["/loading/frame1.png","/loading/frame2.png","/loading/frame3.png"], text:"Sketching idea...", progress:22, speed:420 },
+  { frames:["/loading/frame4.png"], text:"Cleaning linework...", progress:45, speed:900 },
+  { frames:["/loading/frame5.png","/loading/frame6.png","/loading/frame7.png"], text:"Finalizing stencil...", progress:82, speed:420 },
+  { frames:["/loading/frame8.png"], text:"Almost done...", progress:95, speed:1000 }
 ];
 
 let stageIndex = 0;
 let frameIndex = 0;
 let anim = null;
-let stageTimer = null;
+let stageTimeouts = [];
 
 function renderFrame(){
   const stage = stages[stageIndex];
@@ -130,29 +117,24 @@ function startLoader(){
   document.getElementById("loader").style.display = "block";
   stageIndex = 0;
   frameIndex = 0;
+  renderFrame();
   playStage();
 
-  clearTimeout(stageTimer);
-  setTimeout(() => {
-    if(document.getElementById("loader").style.display === "none") return;
-    stageIndex = 1; playStage();
-  }, 2200);
-  setTimeout(() => {
-    if(document.getElementById("loader").style.display === "none") return;
-    stageIndex = 2; playStage();
-  }, 4700);
-  setTimeout(() => {
-    if(document.getElementById("loader").style.display === "none") return;
-    stageIndex = 3; playStage();
-  }, 7600);
+  stageTimeouts.forEach(t => clearTimeout(t));
+  stageTimeouts = [
+    setTimeout(() => { if(document.getElementById("loader").style.display !== "none"){ stageIndex = 1; playStage(); } }, 2200),
+    setTimeout(() => { if(document.getElementById("loader").style.display !== "none"){ stageIndex = 2; playStage(); } }, 4300),
+    setTimeout(() => { if(document.getElementById("loader").style.display !== "none"){ stageIndex = 3; playStage(); } }, 7000)
+  ];
 }
 
 function stopLoader(){
   clearInterval(anim);
+  stageTimeouts.forEach(t => clearTimeout(t));
   document.getElementById("bar").style.width = "100%";
   setTimeout(() => {
     document.getElementById("loader").style.display = "none";
-  }, 200);
+  }, 180);
 }
 
 async function generate(){
@@ -172,7 +154,6 @@ async function generate(){
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({prompt})
     });
-
     const data = await res.json();
     stopLoader();
 
@@ -190,6 +171,5 @@ async function generate(){
   }
 }
 </script>
-
 </body>
 </html>

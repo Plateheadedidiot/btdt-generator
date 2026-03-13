@@ -1,4 +1,4 @@
-BTDT comic cow final package
+BTDT locked animation package
 
 Replace these in your Vercel project:
 - /public/index.html
@@ -6,6 +6,4 @@ Replace these in your Vercel project:
 - /api/generate.js
 - vercel.json
 
-Then redeploy.
-
-This package uses the comic-style cow panels as the loader animation.
+This version uses a locked-camera animation so the cow stays in place and only the pose changes.
