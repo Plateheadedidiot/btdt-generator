@@ -1,68 +1,374 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BTDT Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Nosifer&display=swap" rel="stylesheet">
 <style>
+:root{
+  --bg:#f6e4cc;
+  --panel:rgba(255,251,247,.92);
+  --ink:#2f170b;
+  --border:#5f3318;
+  --accent:#a5683a;
+}
+*{box-sizing:border-box}
 body{
-font-family:Arial;
-background:#f6e4cc;
-text-align:center;
-padding:40px;
+  margin:0;
+  min-height:100vh;
+  font-family:'Courier New',monospace;
+  color:var(--ink);
+  background:
+    linear-gradient(rgba(246,228,204,.88), rgba(246,228,204,.88)),
+    radial-gradient(circle at top, rgba(255,255,255,.35), transparent 45%),
+    var(--bg);
+}
+main{
+  width:min(940px, 92vw);
+  margin:0 auto;
+  padding:32px 16px 56px;
+}
+.hero{
+  text-align:center;
+  margin-bottom:20px;
+}
+.hero h1{
+  font-family:'Nosifer',cursive;
+  margin:0 0 12px;
+  font-size:clamp(2rem, 4.5vw, 3.8rem);
+  color:#3d1e0b;
+}
+.hero p{
+  margin:0 auto;
+  max-width:680px;
+  font-size:1.05rem;
+  line-height:1.5;
+}
+.card{
+  background:var(--panel);
+  border:3px solid rgba(95,51,24,.18);
+  border-radius:24px;
+  box-shadow:0 18px 40px rgba(0,0,0,.12);
+  padding:24px;
+}
+label{
+  display:block;
+  margin-bottom:10px;
+  font-weight:800;
+  font-size:1rem;
 }
 textarea{
-width:90%;
-max-width:500px;
-height:120px;
-padding:10px;
+  width:100%;
+  min-height:140px;
+  padding:16px;
+  border-radius:18px;
+  border:2px solid rgba(95,51,24,.25);
+  background:#fffdfb;
+  color:var(--ink);
+  font:inherit;
+  resize:vertical;
+  outline:none;
+}
+textarea:focus{
+  border-color:#a5683a;
+  box-shadow:0 0 0 4px rgba(165,104,58,.12);
+}
+.controls{
+  display:flex;
+  justify-content:center;
+  margin-top:16px;
 }
 button{
-margin-top:10px;
-padding:10px 20px;
-font-size:16px;
-cursor:pointer;
+  appearance:none;
+  border:none;
+  cursor:pointer;
+  padding:14px 22px;
+  border-radius:14px;
+  background:var(--accent);
+  color:#fff;
+  font:800 1rem 'Courier New',monospace;
+  transition:transform .15s ease, opacity .2s ease, filter .2s ease;
+  box-shadow:0 10px 24px rgba(0,0,0,.15);
 }
-img{
-margin-top:20px;
-max-width:500px;
-width:90%;
+button:hover{filter:brightness(1.03); transform:translateY(-1px)}
+button:disabled{opacity:.65; cursor:not-allowed; transform:none}
+.result-wrap{
+  margin-top:24px;
+}
+#result{
+  min-height:80px;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+#result img{
+  width:min(100%, 720px);
+  height:auto;
+  border-radius:22px;
+  border:3px solid rgba(95,51,24,.18);
+  background:#fff;
+  box-shadow:0 14px 30px rgba(0,0,0,.13);
+}
+.error{
+  color:#8f1d1d;
+  font-weight:800;
+}
+#loader{
+  display:none;
+  margin-top:22px;
+  background:#fff;
+  border:3px solid #111;
+  border-radius:26px;
+  box-shadow:10px 10px 0 #111;
+  padding:18px 16px 20px;
+  text-align:center;
+}
+#loader.active{display:block}
+.loader-art-wrap{
+  width:min(100%, 420px);
+  margin:0 auto 16px;
+}
+#cow{
+  width:100%;
+  height:auto;
+  display:block;
+  border-radius:18px;
+  background:#fff;
+  opacity:1;
+  transform:scale(1);
+  transition:opacity .18s ease-in-out, transform .22s ease-in-out;
+}
+#cow.is-changing{
+  opacity:.15;
+  transform:scale(.985);
+}
+#loadingText{
+  margin:0;
+  font-size:clamp(1.2rem, 3vw, 1.7rem);
+  font-weight:900;
+}
+#loadingSubtext{
+  margin:8px 0 0;
+  color:#6c5447;
+  font-weight:700;
+}
+.progress{
+  width:min(100%, 360px);
+  height:20px;
+  margin:16px auto 0;
+  border:3px solid #111;
+  border-radius:999px;
+  overflow:hidden;
+  background:#fff;
+  box-shadow:5px 5px 0 #111;
+}
+.progress-bar{
+  width:8%;
+  height:100%;
+  border-radius:999px;
+  background:linear-gradient(90deg, #ff8cb8, #ffd86b);
+  transition:width .35s ease;
+}
+.hint{
+  margin-top:18px;
+  text-align:center;
+  color:#6c5447;
+  font-size:.95rem;
+  font-weight:700;
+}
+@media (max-width:640px){
+  .card{padding:18px}
+  main{padding-top:22px}
 }
 </style>
 </head>
 <body>
+<main>
+  <section class="hero">
+    <h1>Been There Done Tat Generator</h1>
+    <p>Describe your tattoo idea and get a bold black stencil-style concept. The cow loader now appears when you click Generate, not when the page first opens.</p>
+  </section>
 
-<h1>Been There Done Tat Generator</h1>
+  <section class="card">
+    <label for="prompt">Describe your tattoo idea</label>
+    <textarea id="prompt" placeholder="Example: black ink tattoo stencil of a demon frog, bold linework, no shading, white background"></textarea>
 
-<textarea id="prompt" placeholder="Describe your tattoo idea"></textarea><br>
-<button onclick="generate()">Generate</button>
+    <div class="controls">
+      <button id="generateBtn" onclick="generate()">Generate</button>
+    </div>
 
-<div id="result"></div>
+    <div id="loader" aria-live="polite" aria-busy="true">
+      <div class="loader-art-wrap">
+        <img id="cow" src="/loading/frame1.png" alt="Cow comic loading animation">
+      </div>
+      <p id="loadingText">Sketching idea...</p>
+      <p id="loadingSubtext">Blocking out the main shapes.</p>
+      <div class="progress" aria-hidden="true">
+        <div id="progressBar" class="progress-bar"></div>
+      </div>
+    </div>
+
+    <div class="result-wrap">
+      <div id="result"></div>
+    </div>
+
+    <p class="hint">Tip: shorter prompts usually generate faster. This version also uses a faster image size.</p>
+  </section>
+</main>
 
 <script>
-async function generate(){
-  const prompt = document.getElementById("prompt").value;
-  const result = document.getElementById("result");
-  result.innerHTML = "Generating...";
+const stages = [
+  {
+    message: 'Sketching idea...',
+    subtext: 'Blocking out the main shapes.',
+    frames: ['/loading/frame1.png','/loading/frame2.png','/loading/frame3.png','/loading/frame2.png'],
+    frameDuration: 420,
+    progress: 24
+  },
+  {
+    message: 'Cleaning linework...',
+    subtext: 'Fixing the awkward bits.',
+    frames: ['/loading/frame4.png','/loading/frame5.png'],
+    frameDuration: 700,
+    progress: 52
+  },
+  {
+    message: 'Finalizing stencil...',
+    subtext: 'Making the lines bold.',
+    frames: ['/loading/frame6.png','/loading/frame7.png'],
+    frameDuration: 520,
+    progress: 78
+  },
+  {
+    message: 'Almost done...',
+    subtext: 'Cow is pretending this was easy.',
+    frames: ['/loading/frame8.png'],
+    frameDuration: 1100,
+    progress: 94
+  }
+];
 
-  const res = await fetch("/api/generate",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({prompt})
+const promptEl = document.getElementById('prompt');
+const resultEl = document.getElementById('result');
+const loaderEl = document.getElementById('loader');
+const cowEl = document.getElementById('cow');
+const loadingTextEl = document.getElementById('loadingText');
+const loadingSubtextEl = document.getElementById('loadingSubtext');
+const progressBarEl = document.getElementById('progressBar');
+const generateBtn = document.getElementById('generateBtn');
+
+let stageIndex = 0;
+let frameIndex = 0;
+let frameTimer = null;
+let stageTimer = null;
+let isGenerating = false;
+
+function setFrame(src) {
+  cowEl.classList.add('is-changing');
+  setTimeout(() => {
+    cowEl.src = src;
+    cowEl.classList.remove('is-changing');
+  }, 100);
+}
+
+function renderStage() {
+  const stage = stages[stageIndex];
+  loadingTextEl.textContent = stage.message;
+  loadingSubtextEl.textContent = stage.subtext;
+  progressBarEl.style.width = stage.progress + '%';
+  setFrame(stage.frames[frameIndex]);
+}
+
+function playStage() {
+  clearInterval(frameTimer);
+  const stage = stages[stageIndex];
+  frameIndex = 0;
+  renderStage();
+
+  frameTimer = setInterval(() => {
+    if (!isGenerating) return;
+    frameIndex = (frameIndex + 1) % stage.frames.length;
+    renderStage();
+  }, stage.frameDuration);
+}
+
+function startLoader() {
+  isGenerating = true;
+  loaderEl.classList.add('active');
+  stageIndex = 0;
+  frameIndex = 0;
+  progressBarEl.style.width = '10%';
+  playStage();
+
+  clearTimeout(stageTimer);
+
+  const schedule = [
+    { delay: 2200, stage: 1 },
+    { delay: 4700, stage: 2 },
+    { delay: 7600, stage: 3 }
+  ];
+
+  schedule.forEach(({ delay, stage }) => {
+    setTimeout(() => {
+      if (!isGenerating) return;
+      stageIndex = stage;
+      playStage();
+    }, delay);
   });
+}
 
-  const data = await res.json();
+function stopLoader(success = true) {
+  isGenerating = false;
+  clearInterval(frameTimer);
+  clearTimeout(stageTimer);
+  progressBarEl.style.width = success ? '100%' : progressBarEl.style.width;
+  setTimeout(() => {
+    loaderEl.classList.remove('active');
+  }, success ? 250 : 0);
+}
 
-  if(data.data){
-    const img = document.createElement("img");
-    img.src = "data:image/png;base64," + data.data[0].b64_json;
-    result.innerHTML="";
-    result.appendChild(img);
-  }else{
-    result.innerHTML = "Error generating image";
+async function generate() {
+  const prompt = promptEl.value.trim();
+  if (!prompt) {
+    resultEl.innerHTML = '<p class="error">Please enter a tattoo idea first.</p>';
+    return;
+  }
+
+  resultEl.innerHTML = '';
+  generateBtn.disabled = true;
+  startLoader();
+
+  try {
+    const res = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data?.error?.message || data?.error || 'Error generating image');
+    }
+
+    if (data?.data?.[0]?.b64_json) {
+      const img = document.createElement('img');
+      img.alt = 'Generated tattoo stencil';
+      img.src = 'data:image/png;base64,' + data.data[0].b64_json;
+      resultEl.innerHTML = '';
+      resultEl.appendChild(img);
+      stopLoader(true);
+    } else {
+      throw new Error('Error generating image');
+    }
+  } catch (error) {
+    stopLoader(false);
+    resultEl.innerHTML = `<p class="error">${error.message || 'Error generating image'}</p>`;
+  } finally {
+    generateBtn.disabled = false;
   }
 }
 </script>
-
 </body>
 </html>
