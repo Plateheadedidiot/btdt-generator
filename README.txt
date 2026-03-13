@@ -1,13 +1,11 @@
+BTDT comic cow final package
 
-BTDT Generator Update (1024x1024 version)
+Replace these in your Vercel project:
+- /public/index.html
+- /public/loading/frame1.png through frame8.png
+- /api/generate.js
+- vercel.json
 
-Changes included:
-• Cow animation loader when Generate button is clicked
-• Progress bar indicator
-• Backend prompt automatically formats tattoo stencil style
-• Image generation size restored to 1024x1024
+Then redeploy.
 
-Upload these files to your Vercel project and redeploy.
-
-Make sure you still have:
-/public/loading/frame1.png through frame8.png
+This package uses the comic-style cow panels as the loader animation.
