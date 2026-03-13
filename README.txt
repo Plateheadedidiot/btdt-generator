@@ -1,4 +1,4 @@
-BTDT locked animation package
+BTDT polished user-frame package
 
 Replace these in your Vercel project:
 - /public/index.html
@@ -6,4 +6,5 @@ Replace these in your Vercel project:
 - /api/generate.js
 - vercel.json
 
-This version uses a locked-camera animation so the cow stays in place and only the pose changes.
+This version uses only your selected 4 cow images in sequence,
+adds smooth crossfades, and uses a progress bar that slows near the end.

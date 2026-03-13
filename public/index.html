@@ -1,24 +1,243 @@
-<!DOCTYPE html><html><head><meta charset="UTF-8"><title>BTDT Generator</title></head>
-<body style="background:#f6e4cc;font-family:Arial;text-align:center;padding:40px;">
-<h1>Been There Done Tat Generator</h1>
-<textarea id="prompt" style="width:90%;max-width:500px;height:120px;"></textarea><br>
-<button onclick="generate()">Generate</button>
-<div id="loader" style="display:none;margin-top:20px;">
-<img id="cow" src="/loading/frame1.png" style="max-width:600px;"><p id="text">Sketching...</p>
-</div>
-<div id="result"></div>
-<script>
-const frames=["/loading/frame1.png","/loading/frame2.png","/loading/frame3.png","/loading/frame4.png","/loading/frame5.png","/loading/frame6.png","/loading/frame7.png","/loading/frame8.png"];
-let i=0,anim;
-function start(){document.getElementById("loader").style.display="block";
-anim=setInterval(()=>{i=(i+1)%frames.length;document.getElementById("cow").src=frames[i];},500);}
-function stop(){clearInterval(anim);document.getElementById("loader").style.display="none";}
-async function generate(){
-const p=document.getElementById("prompt").value;
-start();
-const r=await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:p})});
-const d=await r.json();
-stop();
-if(d.data){const img=document.createElement("img");img.src="data:image/png;base64,"+d.data[0].b64_json;document.getElementById("result").appendChild(img);}
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BTDT Generator</title>
+<style>
+body{
+  background:#f6e4cc;
+  font-family:Arial,sans-serif;
+  text-align:center;
+  padding:40px;
+  color:#2f170b;
 }
-</script></body></html>
+h1{margin-bottom:18px;}
+textarea{
+  width:90%;
+  max-width:560px;
+  height:120px;
+  padding:12px;
+  border:2px solid #2f170b;
+  border-radius:12px;
+  font-size:16px;
+}
+button{
+  margin-top:12px;
+  padding:12px 22px;
+  font-size:16px;
+  font-weight:700;
+  cursor:pointer;
+  border:2px solid #2f170b;
+  border-radius:12px;
+  background:#fff7ef;
+}
+button:hover{transform:translateY(-1px);}
+#loader{
+  display:none;
+  margin:24px auto 0;
+  max-width:640px;
+}
+#loaderStage{
+  position:relative;
+  width:min(92vw, 640px);
+  height:auto;
+  margin:0 auto;
+  aspect-ratio: 1024 / 1536;
+}
+.loader-frame{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  border:3px solid #111;
+  border-radius:20px;
+  background:#fff;
+  box-shadow:8px 8px 0 #111;
+  opacity:0;
+  transition:opacity .28s ease-in-out;
+}
+.loader-frame.active{
+  opacity:1;
+}
+#loadingText{
+  margin:16px 0 8px;
+  font-size:24px;
+  font-weight:900;
+}
+#loadingSubtext{
+  margin:0 0 10px;
+  font-size:14px;
+  opacity:.8;
+}
+.progress{
+  width:min(92%, 360px);
+  height:18px;
+  border:3px solid #111;
+  background:#fff;
+  margin:12px auto;
+  border-radius:999px;
+  overflow:hidden;
+  box-shadow:4px 4px 0 #111;
+}
+.bar{
+  height:100%;
+  width:6%;
+  background:linear-gradient(90deg,#ff8ab4,#ffd36b);
+  transition:width .35s ease;
+}
+#result{
+  margin-top:22px;
+}
+#result img{
+  max-width:min(92vw, 700px);
+  width:100%;
+}
+</style>
+</head>
+<body>
+<h1>Been There Done Tat Generator</h1>
+
+<textarea id="prompt" placeholder="Describe your tattoo idea"></textarea><br>
+<button id="generateBtn" onclick="generate()">Generate</button>
+
+<div id="loader">
+  <div id="loaderStage">
+    <img class="loader-frame active" id="frameA" src="/loading/frame1.png" alt="Loader frame A">
+    <img class="loader-frame" id="frameB" src="/loading/frame2.png" alt="Loader frame B">
+  </div>
+  <p id="loadingText">Sketching idea...</p>
+  <p id="loadingSubtext">Cow is working on it...</p>
+  <div class="progress"><div id="bar" class="bar"></div></div>
+</div>
+
+<div id="result"></div>
+
+<script>
+const frames = [
+  "/loading/frame1.png",
+  "/loading/frame2.png",
+  "/loading/frame3.png",
+  "/loading/frame4.png",
+  "/loading/frame5.png",
+  "/loading/frame6.png",
+  "/loading/frame7.png",
+  "/loading/frame8.png"
+];
+
+const captions = [
+  {text:"Sketching idea...", sub:"Starting the stencil..."},
+  {text:"Adjusting lines...", sub:"Cleaning the shape..."},
+  {text:"Finalizing stencil...", sub:"Making it bolder..."},
+  {text:"Still cooking...", sub:"Cow refuses to rush art..."},
+  {text:"Sketching idea...", sub:"Starting the stencil..."},
+  {text:"Adjusting lines...", sub:"Cleaning the shape..."},
+  {text:"Finalizing stencil...", sub:"Making it bolder..."},
+  {text:"Almost done...", sub:"Cow is running on fumes..."}
+];
+
+let frameIndex = 0;
+let activeSlot = "A";
+let animInterval = null;
+let progressInterval = null;
+let simulatedProgress = 6;
+
+function crossfadeTo(src){
+  const frameA = document.getElementById("frameA");
+  const frameB = document.getElementById("frameB");
+  if(activeSlot === "A"){
+    frameB.src = src;
+    frameB.classList.add("active");
+    frameA.classList.remove("active");
+    activeSlot = "B";
+  } else {
+    frameA.src = src;
+    frameA.classList.add("active");
+    frameB.classList.remove("active");
+    activeSlot = "A";
+  }
+}
+
+function updateCaption(idx){
+  document.getElementById("loadingText").textContent = captions[idx].text;
+  document.getElementById("loadingSubtext").textContent = captions[idx].sub;
+}
+
+function startLoader(){
+  document.getElementById("loader").style.display = "block";
+  document.getElementById("bar").style.width = "6%";
+  simulatedProgress = 6;
+  frameIndex = 0;
+  activeSlot = "A";
+  document.getElementById("frameA").src = frames[0];
+  document.getElementById("frameA").classList.add("active");
+  document.getElementById("frameB").classList.remove("active");
+  updateCaption(0);
+
+  animInterval = setInterval(() => {
+    frameIndex = (frameIndex + 1) % frames.length;
+    crossfadeTo(frames[frameIndex]);
+    updateCaption(frameIndex);
+  }, 700);
+
+  progressInterval = setInterval(() => {
+    // Fast at first, then slows down near the end
+    if(simulatedProgress < 78){
+      simulatedProgress += 6;
+    } else if(simulatedProgress < 90){
+      simulatedProgress += 2;
+    } else if(simulatedProgress < 95){
+      simulatedProgress += 1;
+    }
+    document.getElementById("bar").style.width = simulatedProgress + "%";
+  }, 650);
+}
+
+function stopLoader(){
+  clearInterval(animInterval);
+  clearInterval(progressInterval);
+  document.getElementById("bar").style.width = "100%";
+  setTimeout(() => {
+    document.getElementById("loader").style.display = "none";
+  }, 220);
+}
+
+async function generate(){
+  const prompt = document.getElementById("prompt").value.trim();
+  const result = document.getElementById("result");
+  result.innerHTML = "";
+
+  if(!prompt){
+    result.innerHTML = "Please enter a tattoo idea.";
+    return;
+  }
+
+  startLoader();
+
+  try{
+    const r = await fetch("/api/generate",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({prompt})
+    });
+
+    const d = await r.json();
+    stopLoader();
+
+    if(d.data && d.data[0] && d.data[0].b64_json){
+      const img = document.createElement("img");
+      img.src = "data:image/png;base64," + d.data[0].b64_json;
+      img.alt = "Generated tattoo stencil";
+      result.appendChild(img);
+    } else {
+      result.innerHTML = "Error generating image";
+    }
+  } catch(e){
+    stopLoader();
+    result.innerHTML = "Error generating image";
+  }
+}
+</script>
+</body>
+</html>
