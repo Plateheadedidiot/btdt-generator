@@ -10,10 +10,24 @@ body{font-family:Arial;background:#f6e4cc;text-align:center;padding:40px;}
 textarea{width:90%;max-width:500px;height:120px;padding:10px;}
 button{margin-top:10px;padding:10px 20px;font-size:16px;cursor:pointer;}
 img{margin-top:20px;max-width:500px;width:90%;}
+
 #loader{display:none;margin-top:20px;}
-#loader img{max-width:400px;}
-.progress{width:300px;height:14px;background:#fff;border:2px solid #000;margin:10px auto;}
-.bar{height:100%;width:0%;background:#000;transition:width .4s;}
+#loader img{max-width:420px;}
+
+.progress{
+width:320px;
+height:16px;
+border:2px solid #000;
+background:#fff;
+margin:12px auto;
+}
+
+.bar{
+height:100%;
+width:0%;
+background:#000;
+transition:width .4s;
+}
 </style>
 </head>
 <body>
@@ -25,7 +39,7 @@ img{margin-top:20px;max-width:500px;width:90%;}
 
 <div id="loader">
 <img id="cow" src="/loading/frame1.png">
-<p id="loadingText">Sketching idea...</p>
+<p>Drawing your stencil...</p>
 <div class="progress"><div id="bar" class="bar"></div></div>
 </div>
 
@@ -50,6 +64,7 @@ let anim;
 function startLoader(){
 document.getElementById("loader").style.display="block";
 document.getElementById("bar").style.width="10%";
+
 anim=setInterval(()=>{
 frameIndex=(frameIndex+1)%frames.length;
 document.getElementById("cow").src=frames[frameIndex];
@@ -75,7 +90,7 @@ headers:{"Content-Type":"application/json"},
 body:JSON.stringify({prompt})
 });
 
-document.getElementById("bar").style.width="60%";
+document.getElementById("bar").style.width="65%";
 
 const data=await res.json();
 
@@ -92,6 +107,7 @@ result.innerHTML="Error generating image";
 }
 
 }
+
 </script>
 
 </body>
