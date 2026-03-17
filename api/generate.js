@@ -1,9 +1,18 @@
 export default async function handler(req, res) {
-  const allowedOrigin = "https://beentheredonetat.com";
+  const allowedOrigins = [
+    "https://beentheredonetat.com",
+    "https://www.beentheredonetat.com",
+    "https://btdt-generator-4tts.vercel.app"
+  ];
 
-  res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
+  const origin = req.headers.origin || "";
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  }
+  res.setHeader("Vary", "Origin");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Cache-Control", "no-store");
 
   if (req.method === "OPTIONS") {
     return res.status(200).end();
@@ -14,12 +23,12 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { prompt } = req.body || {};
-    if (!prompt) {
+    const body = typeof req.body === "string" ? JSON.parse(req.body) : (req.body || {});
+    const { prompt } = body;
+
+    if (!prompt || !String(prompt).trim()) {
       return res.status(400).json({ error: "Prompt required" });
     }
-
-    const finalPrompt = `Tattoo stencil design, bold black linework, white background. Idea: ${prompt}`;
 
     const response = await fetch("https://api.openai.com/v1/images/generations", {
       method: "POST",
@@ -29,7 +38,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: "gpt-image-1",
-        prompt: finalPrompt,
+        prompt: String(prompt).trim(),
         size: "1024x1024"
       })
     });
@@ -37,11 +46,16 @@ export default async function handler(req, res) {
     const data = await response.json();
 
     if (!response.ok) {
-      return res.status(response.status).json(data);
+      const message = data?.error?.message || data?.error || "OpenAI image generation failed";
+      return res.status(response.status).json({ error: message, raw: data });
+    }
+
+    if (!data?.data?.[0]?.b64_json) {
+      return res.status(502).json({ error: "Image API returned no base64 image.", raw: data });
     }
 
     return res.status(200).json(data);
   } catch (err) {
-    return res.status(500).json({ error: "Server error" });
+    return res.status(500).json({ error: err?.message || "Server error" });
   }
 }

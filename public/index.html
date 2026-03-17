@@ -1,48 +1,209 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BTDT Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Nosifer&display=swap" rel="stylesheet">
 <style>
-body{
-  background:#f6e4cc;
-  font-family:Arial,sans-serif;
-  text-align:center;
-  padding:40px;
-  color:#2f170b;
+*{box-sizing:border-box}
+:root{
+  --cream:#f6e4cc;
+  --brown:#5f3318;
+  --brown-dark:#3b1b08;
+  --tan:#efe1d5;
+  --card:#fffaf6;
+  --accent:#a5683a;
+  --line:#d8c2b0;
 }
-h1{margin-bottom:18px;}
-textarea{
-  width:90%;
-  max-width:560px;
-  height:120px;
-  padding:12px;
-  border:2px solid #2f170b;
+body{
+  margin:0;
+  min-height:100vh;
+  background:var(--cream);
+  font-family:'Courier New',monospace;
+  color:var(--brown-dark);
+}
+main{
+  max-width:1180px;
+  margin:auto;
+  padding:2rem 1rem 3rem;
+}
+.shell{
+  display:grid;
+  grid-template-columns:360px minmax(0,1fr);
+  gap:1.25rem;
+  align-items:start;
+}
+.panel{
+  background:rgba(255,255,255,.95);
+  border-radius:24px;
+  box-shadow:0 12px 30px rgba(0,0,0,.14);
+  border:1px solid rgba(95,51,24,.08);
+}
+.left-panel{
+  padding:1.2rem;
+  position:sticky;
+  top:1rem;
+}
+.right-panel{
+  padding:1.35rem;
+}
+h1{
+  margin:.15rem 0 .4rem;
+  text-align:left;
+  font-family:'Nosifer',cursive;
+  font-size:clamp(1.65rem,3vw,2.35rem);
+  color:#111;
+}
+.subhead{
+  margin:0 0 1rem;
+  line-height:1.55;
+  color:#5a3118;
+}
+.section{
+  background:var(--card);
+  border:2px solid var(--line);
+  border-radius:18px;
+  padding:1rem;
+  margin-bottom:.9rem;
+}
+.section h3{
+  margin:0 0 .75rem;
+  font-size:1rem;
+  font-family:'Nosifer',cursive;
+  color:#5a3118;
+}
+.option-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:.55rem;
+}
+.option-grid.compact{
+  grid-template-columns:1fr;
+}
+.option-grid input{
+  display:none;
+}
+.option-grid label{
+  display:block;
+  width:100%;
+  padding:.7rem .8rem;
+  border:2px solid #cfb299;
+  border-radius:14px;
+  background:#fff;
+  cursor:pointer;
+  font-size:.92rem;
+  font-weight:700;
+  text-align:center;
+  transition:.16s ease;
+}
+.option-grid input:checked + label{
+  background:var(--accent);
+  color:#fff;
+  border-color:var(--accent);
+  box-shadow:0 8px 16px rgba(0,0,0,.12);
+  transform:translateY(-1px);
+}
+.helper{
+  font-size:.84rem;
+  line-height:1.45;
+  opacity:.8;
+  margin-top:.55rem;
+}
+.upload-shell{
+  border:2px dashed #cfb299;
+  border-radius:16px;
+  padding:.9rem;
+  text-align:center;
+  background:#fffdfb;
+}
+.upload-shell input{
+  display:block;
+  margin:.65rem auto 0;
+}
+.preview{
+  margin:.75rem auto 0;
+  max-width:220px;
+  width:100%;
   border-radius:12px;
+  display:none;
+  box-shadow:0 8px 18px rgba(0,0,0,.12);
+}
+.prompt-shell{
+  background:var(--card);
+  border:2px solid var(--line);
+  border-radius:20px;
+  padding:1rem;
+}
+.prompt-shell h2{
+  margin:0 0 .75rem;
+  font-family:'Nosifer',cursive;
+  font-size:1.2rem;
+  color:#5a3118;
+}
+textarea{
+  width:100%;
+  min-height:180px;
+  padding:14px;
+  border:2px solid var(--line);
+  border-radius:16px;
   font-size:16px;
+  font-family:inherit;
+  color:#3d1e0b;
+  background:#fffdfb;
+  resize:vertical;
+}
+.quick-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:.55rem;
+  margin-top:.8rem;
+}
+.quick-chip{
+  padding:.45rem .7rem;
+  border-radius:999px;
+  background:#fff;
+  border:1px solid #d7c2ae;
+  font-size:.82rem;
+  cursor:pointer;
+}
+.button-row{
+  display:flex;
+  gap:.75rem;
+  justify-content:flex-start;
+  flex-wrap:wrap;
+  margin-top:1rem;
 }
 button{
-  margin-top:12px;
-  padding:12px 22px;
-  font-size:16px;
-  font-weight:700;
+  padding:14px 24px;
+  border:none;
+  border-radius:14px;
   cursor:pointer;
-  border:2px solid #2f170b;
-  border-radius:12px;
-  background:#fff7ef;
+  font-family:'Nosifer',cursive;
+  font-size:.95rem;
 }
-button:hover{transform:translateY(-1px);}
+.primary{
+  background:var(--accent);
+  color:#fff;
+  box-shadow:0 8px 18px rgba(0,0,0,.18);
+}
+.secondary{
+  background:var(--tan);
+  color:#5a3118;
+}
+.result-wrap{
+  margin-top:1rem;
+}
 #loader{
   display:none;
-  margin:24px auto 0;
+  margin:1rem auto 0;
   max-width:640px;
 }
 #loaderStage{
   position:relative;
-  width:min(92vw, 640px);
+  width:min(100%, 640px);
   margin:0 auto;
-  aspect-ratio: 1024 / 1536;
+  aspect-ratio:1024 / 1536;
 }
 .loader-frame{
   position:absolute;
@@ -57,21 +218,21 @@ button:hover{transform:translateY(-1px);}
   opacity:0;
   transition:opacity .28s ease-in-out;
 }
-.loader-frame.active{
-  opacity:1;
-}
+.loader-frame.active{opacity:1;}
 #loadingText{
   margin:16px 0 8px;
   font-size:24px;
   font-weight:900;
+  text-align:center;
 }
 #loadingSubtext{
   margin:0 0 10px;
   font-size:14px;
   opacity:.8;
+  text-align:center;
 }
 .progress{
-  width:min(92%, 360px);
+  width:min(92%,360px);
   height:18px;
   border:3px solid #111;
   background:#fff;
@@ -86,41 +247,154 @@ button:hover{transform:translateY(-1px);}
   background:linear-gradient(90deg,#ff8ab4,#ffd36b);
   transition:width .35s ease;
 }
+#errorBox{
+  display:none;
+  margin-top:1rem;
+  padding:1rem;
+  border-radius:14px;
+  background:#fff2f0;
+  border:2px solid #e2a29b;
+  color:#7a1e12;
+  white-space:pre-wrap;
+}
 #result{
-  margin-top:22px;
+  margin-top:1rem;
+  text-align:center;
 }
 #result img{
-  max-width:min(92vw, 700px);
+  max-width:min(100%, 760px);
   width:100%;
+  border-radius:18px;
+  box-shadow:0 12px 30px rgba(0,0,0,.16);
+  background:#fff;
+}
+@media (max-width:980px){
+  .shell{grid-template-columns:1fr;}
+  .left-panel{position:static;}
+}
+@media (max-width:620px){
+  .option-grid{grid-template-columns:1fr;}
+  .button-row button{width:100%;}
 }
 </style>
 </head>
 <body>
-<h1>Been There Done Tat Generator</h1>
+<main>
+  <div class="shell">
+    <aside class="panel left-panel">
+      <h1>Design Generator</h1>
+      <p class="subhead">Build a cleaner tattoo prompt with style controls, placement ideas, stencil mode, and an optional inspo image.</p>
 
-<textarea id="prompt" placeholder="Describe your tattoo idea"></textarea><br>
-<button id="generateBtn" onclick="generate()">Generate</button>
+      <div class="section">
+        <h3>Output Type</h3>
+        <div class="option-grid compact">
+          <input type="radio" name="outputType" id="out1" value="tattoo design" checked>
+          <label for="out1">Tattoo Design</label>
 
-<div id="loader">
-  <div id="loaderStage">
-    <img class="loader-frame active" id="frameA" src="/loading/frame1.png" alt="Loader frame A">
-    <img class="loader-frame" id="frameB" src="/loading/frame2.png" alt="Loader frame B">
+          <input type="radio" name="outputType" id="out2" value="stencil">
+          <label for="out2">Stencil Mode</label>
+
+          <input type="radio" name="outputType" id="out3" value="flash sheet">
+          <label for="out3">Flash Sheet</label>
+        </div>
+        <div class="helper">Stencil mode pushes clean linework. Flash sheet asks for a single page with multiple small tattoo concepts.</div>
+      </div>
+
+      <div class="section">
+        <h3>Tattoo Style</h3>
+        <div class="option-grid">
+          <input type="radio" name="style" id="s1" value="traditional" checked><label for="s1">Traditional</label>
+          <input type="radio" name="style" id="s2" value="neo traditional"><label for="s2">Neo Traditional</label>
+          <input type="radio" name="style" id="s3" value="Japanese"><label for="s3">Japanese</label>
+          <input type="radio" name="style" id="s4" value="blackwork"><label for="s4">Blackwork</label>
+          <input type="radio" name="style" id="s5" value="cartoony"><label for="s5">Cartoony</label>
+          <input type="radio" name="style" id="s6" value="fine line"><label for="s6">Fine Line</label>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>Placement</h3>
+        <div class="option-grid">
+          <input type="radio" name="placement" id="p1" value="arm" checked><label for="p1">Arm</label>
+          <input type="radio" name="placement" id="p2" value="forearm"><label for="p2">Forearm</label>
+          <input type="radio" name="placement" id="p3" value="thigh"><label for="p3">Thigh</label>
+          <input type="radio" name="placement" id="p4" value="chest"><label for="p4">Chest</label>
+          <input type="radio" name="placement" id="p5" value="back"><label for="p5">Back</label>
+          <input type="radio" name="placement" id="p6" value="knee"><label for="p6">Knee</label>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>Size</h3>
+        <div class="option-grid">
+          <input type="radio" name="size" id="z1" value="small" checked><label for="z1">Small</label>
+          <input type="radio" name="size" id="z2" value="medium"><label for="z2">Medium</label>
+          <input type="radio" name="size" id="z3" value="large"><label for="z3">Large</label>
+          <input type="radio" name="size" id="z4" value="palm size"><label for="z4">Palm Size</label>
+          <input type="radio" name="size" id="z5" value="half sleeve"><label for="z5">Half Sleeve</label>
+          <input type="radio" name="size" id="z6" value="full back piece"><label for="z6">Back Piece</label>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>Color</h3>
+        <div class="option-grid">
+          <input type="radio" name="color" id="c1" value="black and grey" checked><label for="c1">Black & Grey</label>
+          <input type="radio" name="color" id="c2" value="full color"><label for="c2">Full Color</label>
+          <input type="radio" name="color" id="c3" value="black ink only"><label for="c3">Black Ink Only</label>
+          <input type="radio" name="color" id="c4" value="muted color palette"><label for="c4">Muted Color</label>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>Optional Inspo Picture</h3>
+        <div class="upload-shell">
+          <div>Upload a reference for vibe, shape, or composition.</div>
+          <input type="file" id="inspo" accept="image/*">
+          <img id="preview" class="preview" alt="Inspo preview">
+        </div>
+      </div>
+    </aside>
+
+    <section class="panel right-panel">
+      <div class="prompt-shell">
+        <h2>Your Idea</h2>
+        <textarea id="prompt" placeholder="Example: creepy demon frog with horns, sharp teeth, bold linework, funny but mean expression"></textarea>
+
+        <div class="quick-row">
+          <div class="quick-chip" onclick="addPrompt('bold linework')">bold linework</div>
+          <div class="quick-chip" onclick="addPrompt('tattoo-ready composition')">tattoo-ready composition</div>
+          <div class="quick-chip" onclick="addPrompt('high contrast')">high contrast</div>
+          <div class="quick-chip" onclick="addPrompt('weird and funny')">weird and funny</div>
+          <div class="quick-chip" onclick="addPrompt('clean white background')">clean white background</div>
+        </div>
+
+        <div class="button-row">
+          <button class="primary" onclick="generate()">Generate</button>
+          <button class="secondary" type="button" onclick="clearResult()">Clear</button>
+        </div>
+      </div>
+
+      <div class="result-wrap">
+        <div id="loader">
+          <div id="loaderStage">
+            <img class="loader-frame active" id="frameA" src="/loading/frame1.png" alt="Loader frame A">
+            <img class="loader-frame" id="frameB" src="/loading/frame2.png" alt="Loader frame B">
+          </div>
+          <p id="loadingText">Sketching idea...</p>
+          <p id="loadingSubtext">Cow is working on it...</p>
+          <div class="progress"><div id="bar" class="bar"></div></div>
+        </div>
+
+        <div id="errorBox"></div>
+        <div id="result"></div>
+      </div>
+    </section>
   </div>
-  <p id="loadingText">Sketching idea...</p>
-  <p id="loadingSubtext">Cow is working on it...</p>
-  <div class="progress"><div id="bar" class="bar"></div></div>
-</div>
-
-<div id="result"></div>
+</main>
 
 <script>
-const frames = [
-  "/loading/frame1.png",
-  "/loading/frame2.png",
-  "/loading/frame3.png",
-  "/loading/frame4.png"
-];
-
+const frames = ["/loading/frame1.png","/loading/frame2.png","/loading/frame3.png","/loading/frame4.png"];
 const captions = [
   {text:"Sketching idea...", sub:"Starting the stencil..."},
   {text:"Thinking it through...", sub:"Cleaning up the lines..."},
@@ -128,14 +402,54 @@ const captions = [
   {text:"Almost done...", sub:"Cow is out cold..."}
 ];
 
-const timings = [900, 900, 700, 1400];
-
-let frameIndex = 0;
+let inspoBase64 = null;
 let activeSlot = "A";
-let animTimeout = null;
+let frameTimeouts = [];
 let progressInterval = null;
 let simulatedProgress = 6;
 
+document.getElementById("inspo").addEventListener("change", function(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(evt){
+    inspoBase64 = evt.target.result.split(",")[1];
+    const preview = document.getElementById("preview");
+    preview.src = evt.target.result;
+    preview.style.display = "block";
+  };
+  reader.readAsDataURL(file);
+});
+
+function selected(name){
+  const el = document.querySelector('input[name="' + name + '"]:checked');
+  return el ? el.value : "";
+}
+function addPrompt(text){
+  const area = document.getElementById("prompt");
+  const current = area.value.trim();
+  area.value = current ? current + ", " + text : text;
+  area.focus();
+}
+function clearResult(){
+  document.getElementById("prompt").value = "";
+  document.getElementById("result").innerHTML = "";
+  hideError();
+  document.getElementById("preview").style.display = "none";
+  document.getElementById("preview").src = "";
+  document.getElementById("inspo").value = "";
+  inspoBase64 = null;
+}
+function showError(msg){
+  const box = document.getElementById("errorBox");
+  box.textContent = msg;
+  box.style.display = "block";
+}
+function hideError(){
+  const box = document.getElementById("errorBox");
+  box.textContent = "";
+  box.style.display = "none";
+}
 function crossfadeTo(src){
   const frameA = document.getElementById("frameA");
   const frameB = document.getElementById("frameB");
@@ -151,89 +465,132 @@ function crossfadeTo(src){
     activeSlot = "A";
   }
 }
-
 function updateCaption(idx){
   document.getElementById("loadingText").textContent = captions[idx].text;
   document.getElementById("loadingSubtext").textContent = captions[idx].sub;
 }
-
-function scheduleNextFrame(){
-  clearTimeout(animTimeout);
-  animTimeout = setTimeout(() => {
-    frameIndex = (frameIndex + 1) % frames.length;
-    crossfadeTo(frames[frameIndex]);
-    updateCaption(frameIndex);
-    scheduleNextFrame();
-  }, timings[frameIndex]);
+function clearFrameTimers(){
+  frameTimeouts.forEach(t => clearTimeout(t));
+  frameTimeouts = [];
 }
-
 function startLoader(){
   document.getElementById("loader").style.display = "block";
   document.getElementById("bar").style.width = "6%";
   simulatedProgress = 6;
-  frameIndex = 0;
+  const frameA = document.getElementById("frameA");
+  const frameB = document.getElementById("frameB");
+
   activeSlot = "A";
-  document.getElementById("frameA").src = frames[0];
-  document.getElementById("frameA").classList.add("active");
-  document.getElementById("frameB").classList.remove("active");
+  frameA.src = frames[0];
+  frameA.classList.add("active");
+  frameB.classList.remove("active");
   updateCaption(0);
-  scheduleNextFrame();
 
+  clearFrameTimers();
   clearInterval(progressInterval);
-  progressInterval = setInterval(() => {
-    if(simulatedProgress < 78){
-      simulatedProgress += 6;
-    } else if(simulatedProgress < 90){
-      simulatedProgress += 2;
-    } else if(simulatedProgress < 95){
-      simulatedProgress += 1;
-    }
-    document.getElementById("bar").style.width = simulatedProgress + "%";
-  }, 650);
-}
 
+  // one-pass sequence, then hold on frame 4
+  frameTimeouts.push(setTimeout(() => {
+    crossfadeTo(frames[1]);
+    updateCaption(1);
+  }, 1200));
+
+  frameTimeouts.push(setTimeout(() => {
+    crossfadeTo(frames[2]);
+    updateCaption(2);
+  }, 2400));
+
+  frameTimeouts.push(setTimeout(() => {
+    crossfadeTo(frames[3]);
+    updateCaption(3);
+  }, 3600));
+
+  progressInterval = setInterval(() => {
+    if(simulatedProgress < 72){ simulatedProgress += 5; }
+    else if(simulatedProgress < 88){ simulatedProgress += 2; }
+    else if(simulatedProgress < 94){ simulatedProgress += 1; }
+    document.getElementById("bar").style.width = simulatedProgress + "%";
+  }, 500);
+}
 function stopLoader(){
-  clearTimeout(animTimeout);
+  clearFrameTimers();
   clearInterval(progressInterval);
   document.getElementById("bar").style.width = "100%";
-  setTimeout(() => {
-    document.getElementById("loader").style.display = "none";
-  }, 220);
+  setTimeout(() => { document.getElementById("loader").style.display = "none"; }, 220);
 }
+function buildPrompt(rawPrompt){
+  const outputType = selected("outputType");
+  const style = selected("style");
+  const placement = selected("placement");
+  const size = selected("size");
+  const color = selected("color");
 
+  let outputText = "";
+  if(outputType === "stencil"){
+    outputText = "Output type: clean tattoo stencil, bold black linework, white background, no shading, no gradients, tattoo transfer-ready.";
+  } else if(outputType === "flash sheet"){
+    outputText = "Output type: tattoo flash sheet with multiple small design variations arranged on one clean page.";
+  } else {
+    outputText = "Output type: polished tattoo design concept.";
+  }
+
+  return `${rawPrompt}. Tattoo style: ${style}. Placement: ${placement}. Size: ${size}. Color: ${color}. ${outputText}`;
+}
 async function generate(){
-  const prompt = document.getElementById("prompt").value.trim();
+  const rawPrompt = document.getElementById("prompt").value.trim();
   const result = document.getElementById("result");
   result.innerHTML = "";
+  hideError();
 
-  if(!prompt){
-    result.innerHTML = "Please enter a tattoo idea.";
+  if(!rawPrompt){
+    showError("Please enter a tattoo idea.");
     return;
   }
 
+  const prompt = buildPrompt(rawPrompt);
   startLoader();
 
   try{
-    const r = await fetch("/api/generate",{
+    const minLoaderTime = new Promise(resolve => setTimeout(resolve, 4200));
+
+    const request = fetch("/api/generate",{
       method:"POST",
       headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({prompt})
+      body:JSON.stringify({
+        prompt: prompt,
+        reference_image: inspoBase64
+      })
+    }).then(async (res) => {
+      let data = {};
+      try {
+        data = await res.json();
+      } catch (e) {
+        data = { error: "Non-JSON response from API." };
+      }
+      return { ok: res.ok, status: res.status, data };
     });
 
-    const d = await r.json();
+    const [{ ok, status, data }] = await Promise.all([request, minLoaderTime]);
+
     stopLoader();
 
-    if(d.data && d.data[0] && d.data[0].b64_json){
-      const img = document.createElement("img");
-      img.src = "data:image/png;base64," + d.data[0].b64_json;
-      img.alt = "Generated tattoo stencil";
-      result.appendChild(img);
-    } else {
-      result.innerHTML = "Error generating image";
+    if(!ok){
+      showError("API error " + status + ": " + (data.error || JSON.stringify(data)));
+      return;
     }
+
+    if(data.data && data.data[0] && data.data[0].b64_json){
+      const img = document.createElement("img");
+      img.src = "data:image/png;base64," + data.data[0].b64_json;
+      img.alt = "Generated tattoo image";
+      result.appendChild(img);
+      return;
+    }
+
+    showError("Generation finished, but no image was returned. Response: " + JSON.stringify(data));
   } catch(e){
     stopLoader();
-    result.innerHTML = "Error generating image";
+    showError("Request failed: " + (e && e.message ? e.message : String(e)));
   }
 }
 </script>
