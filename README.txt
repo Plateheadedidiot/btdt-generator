@@ -1,4 +1,4 @@
-Fresh full Vercel package
+Fresh full Vercel package built from the 4 newly uploaded cow frames.
 
 Included:
 - public/index.html
@@ -7,21 +7,15 @@ Included:
 - vercel.json
 
 What changed:
-- one-pass 4-frame loader (each frame shows once, then holds on frame 4)
-- better on-page error reporting
-- fresh loading folder
-- cleaner API error handling
-- CORS enabled for:
-  https://beentheredonetat.com
-  https://www.beentheredonetat.com
+- uses the 4 newly uploaded frames in the exact order provided
+- one-image loader (no crossfade bug)
+- one-pass sequence: frame1 -> frame2 -> frame3 -> frame4, then hold
+- better error reporting
+- CORS enabled for your domains
 
-How to use:
-1. Replace your Vercel project's public/ folder with this package's public/
-2. Replace api/generate.js
-3. Replace vercel.json
-4. Redeploy
+Replace your Vercel project's:
+- public/
+- api/generate.js
+- vercel.json
 
-After redeploying, test:
-- /loading/frame1.png through /loading/frame4.png
-- then try a generation
-- if it fails, the page should now show the real error message
+Then redeploy.
