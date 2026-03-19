@@ -78,9 +78,7 @@ h1{
 .option-grid.compact{
   grid-template-columns:1fr;
 }
-.option-grid input{
-  display:none;
-}
+.option-grid input{display:none;}
 .option-grid label{
   display:block;
   width:100%;
@@ -245,7 +243,7 @@ button{
   <div class="shell">
     <aside class="panel left-panel">
       <h1>Design Generator</h1>
-      <p class="subhead">Uses the 4 newly uploaded cow frames, with a one-pass loader and clearer error reporting.</p>
+      <p class="subhead">Smart-timed loader that shows each cow frame once, then holds the last frame only when needed.</p>
 
       <div class="section">
         <h3>Output Type</h3>
@@ -346,6 +344,9 @@ const captions = [
   {text:"Almost done...", sub:"Cow is out cold..."}
 ];
 
+// Stage timings: first three linger longer, frame four only when needed
+const stageDurations = [1500, 1500, 1400];
+
 let inspoBase64 = null;
 let frameTimers = [];
 let progressInterval = null;
@@ -396,6 +397,9 @@ function clearFrameTimers(){
   frameTimers.forEach(t => clearTimeout(t));
   frameTimers = [];
 }
+function totalSequenceTime(){
+  return stageDurations.reduce((a,b)=>a+b,0);
+}
 function startLoader(){
   document.getElementById("loader").style.display = "block";
   document.getElementById("bar").style.width = "6%";
@@ -403,21 +407,28 @@ function startLoader(){
   updateFrame(0);
   clearFrameTimers();
   clearInterval(progressInterval);
-  frameTimers.push(setTimeout(() => updateFrame(1), 1200));
-  frameTimers.push(setTimeout(() => updateFrame(2), 2400));
-  frameTimers.push(setTimeout(() => updateFrame(3), 3600));
+
+  let t1 = stageDurations[0];
+  let t2 = stageDurations[0] + stageDurations[1];
+  let t3 = stageDurations[0] + stageDurations[1] + stageDurations[2];
+
+  frameTimers.push(setTimeout(() => updateFrame(1), t1));
+  frameTimers.push(setTimeout(() => updateFrame(2), t2));
+  frameTimers.push(setTimeout(() => updateFrame(3), t3));
+
+  // Progress moves quickly through the first three stages, then eases near the end
   progressInterval = setInterval(() => {
-    if(progress < 72) progress += 5;
-    else if(progress < 88) progress += 2;
-    else if(progress < 94) progress += 1;
+    if(progress < 70) progress += 4;
+    else if(progress < 86) progress += 2;
+    else if(progress < 93) progress += 1;
     document.getElementById("bar").style.width = progress + "%";
-  }, 500);
+  }, 420);
 }
 function stopLoader(){
   clearFrameTimers();
   clearInterval(progressInterval);
   document.getElementById("bar").style.width = "100%";
-  setTimeout(() => { document.getElementById("loader").style.display = "none"; }, 220);
+  setTimeout(() => { document.getElementById("loader").style.display = "none"; }, 180);
 }
 function buildPrompt(rawPrompt){
   const outputType = selected("outputType");
@@ -440,14 +451,19 @@ async function generate(){
   const result = document.getElementById("result");
   result.innerHTML = "";
   hideError();
+
   if(!rawPrompt){
     showError("Please enter a tattoo idea.");
     return;
   }
+
   const prompt = buildPrompt(rawPrompt);
   startLoader();
+
   try{
-    const minLoader = new Promise(resolve => setTimeout(resolve, 4200));
+    // Guarantees the first three frames fully play once.
+    const minLoader = new Promise(resolve => setTimeout(resolve, totalSequenceTime() + 150));
+
     const req = fetch("/api/generate",{
       method:"POST",
       headers:{"Content-Type":"application/json"},
@@ -457,8 +473,11 @@ async function generate(){
       try { data = await res.json(); } catch (e) { data = { error: "Non-JSON response from API." }; }
       return { ok: res.ok, status: res.status, data };
     });
+
     const [{ ok, status, data }] = await Promise.all([req, minLoader]);
+
     stopLoader();
+
     if(!ok){
       showError("API error " + status + ": " + (data.error || JSON.stringify(data)));
       return;

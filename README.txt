@@ -1,21 +1,13 @@
-Fresh full Vercel package built from the 4 newly uploaded cow frames.
+Smart timing package
 
-Included:
-- public/index.html
-- public/loading/frame1.png through frame4.png
-- api/generate.js
-- vercel.json
-
-What changed:
-- uses the 4 newly uploaded frames in the exact order provided
-- one-image loader (no crossfade bug)
-- one-pass sequence: frame1 -> frame2 -> frame3 -> frame4, then hold
-- better error reporting
-- CORS enabled for your domains
+Changes:
+- frame 1 lasts longer
+- frame 2 lasts longer
+- frame 3 lasts longer
+- frame 4 appears only after the first three fully play, then holds only as long as needed
+- minimum loader time now matches the first 3 frames instead of an overly long hold
 
 Replace your Vercel project's:
 - public/
 - api/generate.js
 - vercel.json
-
-Then redeploy.
