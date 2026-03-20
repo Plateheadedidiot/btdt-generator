@@ -405,6 +405,7 @@ function setLockUI(unlocked, subActive){
     merchBtn.style.display = "none";
   }
 }
+// PREVIEW GENERATION DOES NOT REQUIRE EMAIL
 async function generate(){
   const rawPrompt = document.getElementById("prompt").value.trim();
   const email = currentEmail || "";
@@ -412,7 +413,6 @@ async function generate(){
   result.innerHTML = "";
   hideError(); hideStatus();
   if(!rawPrompt){ showError("Please enter a tattoo idea."); return; }
-  if(!email){ showError("Please enter your email first."); return; }
   currentEmail = email;
   const prompt = buildPrompt(rawPrompt);
   startLoader();
