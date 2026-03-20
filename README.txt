@@ -47,3 +47,9 @@ How to deploy
 
 Recommended next step after this
 - Connect Printful so “Buy as T-shirt” and “Buy as Sticker” become real checkout flows
+
+
+Updated in this version:
+- expanded Tattoo Style options
+- expanded Placement options
+- expanded Size options
