@@ -1,98 +1,821 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>BTDT Generator</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Been There Done Tat Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Nosifer&display=swap" rel="stylesheet">
 <style>
-body{font-family:sans-serif;background:#f6e4cc;padding:20px}
-select,textarea,button{width:100%;margin:8px 0;padding:10px}
-#loader{display:none;text-align:center;font-weight:bold}
-#result img{max-width:100%;margin-top:15px}
+*{box-sizing:border-box}
+:root{
+  --cream:#f6e4cc;
+  --brown:#5f3318;
+  --brown-dark:#3b1b08;
+  --card:#fffaf6;
+  --accent:#a5683a;
+  --line:#d8c2b0;
+  --green:#1d7f47;
+  --red:#8b2e1d;
+}
+body{
+  margin:0;
+  min-height:100vh;
+  background:var(--cream);
+  font-family:Arial,sans-serif;
+  color:var(--brown-dark);
+}
+main{
+  max-width:1160px;
+  margin:auto;
+  padding:2rem 1rem 3rem;
+}
+.shell{
+  display:grid;
+  grid-template-columns:340px minmax(0,1fr);
+  gap:1.25rem;
+  align-items:start;
+}
+.panel{
+  background:rgba(255,255,255,.96);
+  border-radius:24px;
+  box-shadow:0 12px 30px rgba(0,0,0,.14);
+  border:1px solid rgba(95,51,24,.08);
+}
+.left-panel{
+  padding:1.2rem;
+  position:sticky;
+  top:1rem;
+}
+.right-panel{
+  padding:1.35rem;
+}
+h1{
+  margin:.1rem 0 .45rem;
+  text-align:left;
+  font-size:2rem;
+  color:#111;
+  font-family:'Nosifer',cursive;
+}
+.subhead{
+  margin:0 0 1rem;
+  line-height:1.55;
+  color:#5a3118;
+}
+.section{
+  background:var(--card);
+  border:2px solid var(--line);
+  border-radius:18px;
+  padding:1rem;
+  margin-bottom:.9rem;
+}
+.section h3{
+  margin:0 0 .7rem;
+  font-size:1rem;
+  color:#5a3118;
+  font-family:'Nosifer',cursive;
+}
+.small{
+  font-size:.85rem;
+  opacity:.82;
+}
+.select-wrap{position:relative}
+.select-wrap::after{
+  content:"▾";
+  position:absolute;
+  right:14px;
+  top:50%;
+  transform:translateY(-50%);
+  font-size:18px;
+  color:#6b3c1c;
+  pointer-events:none;
+}
+.select-field{
+  width:100%;
+  padding:13px 42px 13px 14px;
+  border:2px solid var(--line);
+  border-radius:16px;
+  font-size:15px;
+  color:#3d1e0b;
+  background:linear-gradient(180deg,#fffdfb 0%,#f7ede4 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.75);
+  appearance:none;
+  cursor:pointer;
+  font-family:'Nosifer',cursive;
+  letter-spacing:.3px;
+}
+.select-field:hover{border-color:#c79c74}
+.select-field:focus{
+  outline:none;
+  border-color:var(--accent);
+  box-shadow:0 0 0 4px rgba(165,104,58,.15);
+}
+.prompt-shell{
+  background:var(--card);
+  border:2px solid var(--line);
+  border-radius:20px;
+  padding:1rem;
+}
+.prompt-shell h2{
+  margin:0 0 .75rem;
+  font-size:1.2rem;
+  color:#5a3118;
+  font-family:'Nosifer',cursive;
+}
+textarea{
+  width:100%;
+  min-height:180px;
+  padding:14px;
+  border:2px solid var(--line);
+  border-radius:16px;
+  font-size:16px;
+  font-family:inherit;
+  color:#3d1e0b;
+  background:#fffdfb;
+  resize:vertical;
+}
+.upload-shell{
+  border:2px dashed #cfb299;
+  border-radius:16px;
+  padding:1rem;
+  text-align:center;
+  background:linear-gradient(180deg,#fffdfb 0%,#f7ede4 100%);
+}
+.upload-btn{
+  display:inline-block;
+  padding:.8rem 1rem;
+  border-radius:14px;
+  background:#fff;
+  border:2px solid var(--line);
+  font-weight:700;
+  color:#5a3118;
+  cursor:pointer;
+}
+.upload-btn:hover{border-color:#c79c74}
+.upload-shell input{display:none}
+.preview{
+  margin:.9rem auto 0;
+  max-width:220px;
+  width:100%;
+  border-radius:12px;
+  display:none;
+  box-shadow:0 8px 18px rgba(0,0,0,.12);
+  border:2px solid #ead6c7;
+}
+.button-row{
+  display:flex;
+  gap:.75rem;
+  justify-content:flex-start;
+  flex-wrap:wrap;
+  margin-top:1rem;
+}
+button{
+  padding:14px 24px;
+  border:none;
+  border-radius:14px;
+  cursor:pointer;
+  font-size:.95rem;
+  font-weight:700;
+}
+.primary{
+  background:var(--accent);
+  color:#fff;
+  box-shadow:0 8px 18px rgba(0,0,0,.18);
+}
+.secondary{
+  background:#efe1d5;
+  color:#5a3118;
+}
+.ghost{
+  background:#fff;
+  border:2px solid var(--line);
+  color:#5a3118;
+}
+#usageBox,#status,#error,#paywallBox{
+  margin-top:1rem;
+  padding:.9rem 1rem;
+  border-radius:14px;
+}
+#usageBox{
+  background:#fff7ec;
+  border:2px solid #e5c6a7;
+  color:#6b3c1c;
+}
+#status{
+  display:none;
+  background:#eefaf3;
+  border:2px solid #8fd0ab;
+  color:var(--green);
+}
+#error{
+  display:none;
+  background:#fff2f0;
+  border:2px solid #e2a29b;
+  color:var(--red);
+}
+#paywallBox{
+  display:none;
+  background:#fff7ec;
+  border:2px solid #e5c6a7;
+  color:#6b3c1c;
+}
+#result{
+  margin-top:1rem;
+  text-align:center;
+}
+#result img{
+  max-width:min(100%,760px);
+  width:100%;
+  border-radius:18px;
+  box-shadow:0 12px 30px rgba(0,0,0,.16);
+  background:#fff;
+}
+.paywall-title{
+  font-family:'Nosifer',cursive;
+  margin:0 0 .5rem;
+  color:#5a3118;
+}
+.paywall-row{
+  display:flex;
+  gap:.75rem;
+  flex-wrap:wrap;
+  margin-top:.9rem;
+}
+.plan-chip{
+  display:inline-block;
+  padding:.4rem .7rem;
+  border-radius:999px;
+  background:#fff;
+  border:1px solid #d5b79a;
+  font-weight:700;
+  font-size:.82rem;
+}
+.modal-backdrop{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.45);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
+  padding:1rem;
+}
+.modal{
+  width:min(520px,100%);
+  background:#fffaf6;
+  border-radius:22px;
+  padding:1.2rem;
+  border:2px solid var(--line);
+  box-shadow:0 16px 40px rgba(0,0,0,.22);
+}
+.modal h3{
+  margin:.1rem 0 .5rem;
+  font-family:'Nosifer',cursive;
+  color:#5a3118;
+  font-size:1rem;
+}
+.modal p{
+  margin:0 0 .8rem;
+  line-height:1.5;
+  color:#5a3118;
+}
+.modal-actions{
+  display:flex;
+  gap:.75rem;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  margin-top:1rem;
+}
+#loaderOverlay{
+  position:fixed;
+  inset:0;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  background:rgba(32,16,9,.45);
+  z-index:9998;
+  padding:1rem;
+}
+.loaderCard{
+  width:min(680px,100%);
+  background:#fffaf6;
+  border-radius:24px;
+  padding:1rem;
+  border:2px solid var(--line);
+  box-shadow:0 20px 50px rgba(0,0,0,.28);
+}
+.loaderTitle{
+  font-family:'Nosifer',cursive;
+  color:#5a3118;
+  text-align:center;
+  margin:.25rem 0 .8rem;
+}
+#loaderStage{
+  position:relative;
+  width:min(100%,640px);
+  margin:0 auto;
+  aspect-ratio:1024 / 1536;
+}
+.loaderFrame{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  border:3px solid #111;
+  border-radius:18px;
+  background:#fff;
+  box-shadow:8px 8px 0 #111;
+  opacity:0;
+  transition:opacity .28s ease;
+}
+.loaderFrame.active{opacity:1}
+#loadingText{
+  margin:16px 0 8px;
+  font-size:24px;
+  font-weight:900;
+  text-align:center;
+}
+#loadingSubtext{
+  margin:0 0 10px;
+  font-size:14px;
+  opacity:.8;
+  text-align:center;
+}
+.progress{
+  width:min(92%,360px);
+  height:18px;
+  border:3px solid #111;
+  background:#fff;
+  margin:12px auto;
+  border-radius:999px;
+  overflow:hidden;
+  box-shadow:4px 4px 0 #111;
+}
+.bar{
+  height:100%;
+  width:6%;
+  background:linear-gradient(90deg,#ff8ab4,#ffd36b);
+  transition:width .35s ease;
+}
+@media (max-width:980px){
+  .shell{grid-template-columns:1fr}
+  .left-panel{position:static}
+}
+@media (max-width:620px){
+  .button-row button,.paywall-row button,.modal-actions button{width:100%}
+}
 </style>
 </head>
 <body>
+<main>
+  <div class="shell">
+    <aside class="panel left-panel">
+      <h1>Generator</h1>
+      <p class="subhead">Styled working version with restored options, inspiration upload, loader animation panels, and a clean paywall layer.</p>
 
-<h1>Been There Done Tat</h1>
+      <div class="section">
+        <h3>Tattoo Style</h3>
+        <div class="small" style="margin-bottom:.6rem;">Pick the closest vibe for the design.</div>
+        <div class="select-wrap">
+          <select id="style" class="select-field">
+            <option value="traditional">Traditional</option>
+            <option value="neo traditional">Neo Traditional</option>
+            <option value="Japanese">Japanese</option>
+            <option value="blackwork">Blackwork</option>
+            <option value="cartoony">Cartoony</option>
+            <option value="fine line">Fine Line</option>
+            <option value="illustrative">Illustrative</option>
+            <option value="tribal">Tribal</option>
+            <option value="realism">Realism</option>
+            <option value="ignorant style">Ignorant</option>
+            <option value="patchwork">Patchwork</option>
+            <option value="bio-organic">Bio-Organic</option>
+            <option value="surrealism">Surreal</option>
+            <option value="chicano">Chicano</option>
+            <option value="watercolor">Watercolor</option>
+            <option value="dotwork">Dotwork</option>
+          </select>
+        </div>
+      </div>
 
-<textarea id="prompt" placeholder="Describe your tattoo"></textarea>
+      <div class="section">
+        <h3>Placement</h3>
+        <div class="small" style="margin-bottom:.6rem;">Helps composition feel tattoo-ready for the body area.</div>
+        <div class="select-wrap">
+          <select id="placement" class="select-field">
+            <option value="arm">Arm</option>
+            <option value="forearm">Forearm</option>
+            <option value="upper arm">Upper Arm</option>
+            <option value="wrist">Wrist</option>
+            <option value="hand">Hand</option>
+            <option value="fingers">Fingers</option>
+            <option value="thigh">Thigh</option>
+            <option value="calf">Calf</option>
+            <option value="shin">Shin</option>
+            <option value="ankle">Ankle</option>
+            <option value="knee">Knee</option>
+            <option value="chest">Chest</option>
+            <option value="sternum">Sternum</option>
+            <option value="stomach">Stomach</option>
+            <option value="back">Back</option>
+            <option value="shoulder blade">Shoulder Blade</option>
+            <option value="neck">Neck</option>
+            <option value="behind ear">Behind Ear</option>
+          </select>
+        </div>
+      </div>
 
-<select id="style">
-<option>Traditional</option>
-<option>Neo Traditional</option>
-<option>Japanese</option>
-<option>Blackwork</option>
-<option>Fine Line</option>
-<option>Cartoony</option>
-<option>Realism</option>
-<option>Illustrative</option>
-<option>Dotwork</option>
-<option>Watercolor</option>
-</select>
+      <div class="section">
+        <h3>Size</h3>
+        <div class="small" style="margin-bottom:.6rem;">Choose the scale you want the concept built around.</div>
+        <div class="select-wrap">
+          <select id="size" class="select-field">
+            <option value="tiny">Tiny</option>
+            <option value="small">Small</option>
+            <option value="medium">Medium</option>
+            <option value="large">Large</option>
+            <option value="palm size">Palm Size</option>
+            <option value="postcard size">Postcard</option>
+            <option value="quarter sleeve">Quarter Sleeve</option>
+            <option value="half sleeve">Half Sleeve</option>
+            <option value="full sleeve">Full Sleeve</option>
+            <option value="chest piece">Chest Piece</option>
+            <option value="back piece">Back Piece</option>
+            <option value="leg sleeve">Leg Sleeve</option>
+          </select>
+        </div>
+      </div>
 
-<select id="placement">
-<option>Arm</option>
-<option>Forearm</option>
-<option>Upper Arm</option>
-<option>Leg</option>
-<option>Thigh</option>
-<option>Calf</option>
-<option>Chest</option>
-<option>Back</option>
-<option>Hand</option>
-<option>Behind Ear</option>
-</select>
+      <div class="section">
+        <h3>Color</h3>
+        <div class="small" style="margin-bottom:.6rem;">Choose how the design should be rendered.</div>
+        <div class="select-wrap">
+          <select id="color" class="select-field">
+            <option value="black and grey">Black & Grey</option>
+            <option value="full color">Full Color</option>
+            <option value="black ink only">Black Ink Only</option>
+            <option value="muted color palette">Muted Color</option>
+            <option value="red and black">Red & Black</option>
+            <option value="pastel color palette">Pastel</option>
+            <option value="high contrast vibrant color">Vibrant</option>
+            <option value="limited two-tone palette">Two-Tone</option>
+            <option value="no color with skin breaks">Skin Breaks</option>
+            <option value="sepia toned shading">Sepia</option>
+          </select>
+        </div>
+      </div>
 
-<select id="size">
-<option>Small</option>
-<option>Medium</option>
-<option>Large</option>
-<option>Half Sleeve</option>
-<option>Full Sleeve</option>
-<option>Back Piece</option>
-</select>
+      <div class="section">
+        <h3>Inspo Picture</h3>
+        <div class="small" style="margin-bottom:.6rem;">Optional: upload inspiration for vibe, composition, or subject.</div>
+        <div class="upload-shell">
+          <label class="upload-btn" for="inspoFile">Choose Inspiration Image</label>
+          <input id="inspoFile" type="file" accept="image/*">
+          <img id="inspoPreview" class="preview" alt="Inspo preview">
+        </div>
+      </div>
+    </aside>
 
-<select id="color">
-<option>Black & Grey</option>
-<option>Full Color</option>
-<option>Red & Black</option>
-<option>Pastel</option>
-</select>
+    <section class="panel right-panel">
+      <div class="prompt-shell">
+        <h2>Your Idea</h2>
+        <textarea id="prompt" placeholder="Example: creepy demon frog with horns, sharp teeth, bold linework, funny but mean expression"></textarea>
 
-<div id="loader">🐄 Generating... (cow loading)</div>
+        <div class="button-row">
+          <button id="generateBtn" class="primary" type="button">Generate Preview</button>
+          <button class="secondary" type="button" onclick="clearResult()">Clear</button>
+        </div>
+      </div>
 
-<button onclick="generate()">Generate</button>
+      <div id="usageBox">Free previews left today: <strong id="count">3</strong></div>
+      <div id="status"></div>
+      <div id="error"></div>
 
-<div id="result"></div>
+      <div id="paywallBox">
+        <div class="paywall-title">Free Preview Limit Reached</div>
+        <div>You’ve used your 3 free previews for today.</div>
+        <div style="margin-top:.5rem;">
+          <span class="plan-chip">$1.99 unlock</span>
+          <span class="plan-chip">$14.99/month subscription</span>
+        </div>
+        <div class="paywall-row">
+          <button class="primary" type="button" onclick="startCheckout('unlock')">Unlock Next Image — $1.99</button>
+          <button class="secondary" type="button" onclick="startCheckout('subscribe')">Subscribe — $14.99/mo</button>
+        </div>
+        <div class="small" style="margin-top:.75rem;">This layer uses Stripe Checkout and local browser access flags. It’s a clean starter paywall on top of the working generator.</div>
+      </div>
+
+      <div id="result"></div>
+    </section>
+  </div>
+</main>
+
+<div id="emailModalBackdrop" class="modal-backdrop">
+  <div class="modal">
+    <h3>Enter Email to Continue</h3>
+    <p>Your preview is already saved in this browser session. Enter an email so checkout and access can be tied to you.</p>
+    <input id="emailModalInput" type="email" placeholder="you@example.com" style="width:100%;padding:14px;border:2px solid var(--line);border-radius:16px;font-size:16px;background:#fffdfb;">
+    <div class="modal-actions">
+      <button class="secondary" type="button" onclick="closeEmailModal()">Cancel</button>
+      <button class="primary" type="button" onclick="confirmEmailModal()">Continue</button>
+    </div>
+  </div>
+</div>
+
+<div id="loaderOverlay">
+  <div class="loaderCard">
+    <div class="loaderTitle">Been There Done Tat</div>
+    <div id="loaderStage">
+      <img class="loaderFrame active" id="frameA" src="/loading/frame1.png" alt="Loader frame A">
+      <img class="loaderFrame" id="frameB" src="/loading/frame2.png" alt="Loader frame B">
+    </div>
+    <p id="loadingText">Sketching idea...</p>
+    <p id="loadingSubtext">Starting the stencil...</p>
+    <div class="progress"><div id="bar" class="bar"></div></div>
+  </div>
+</div>
 
 <script>
-async function generate(){
-  const prompt = document.getElementById("prompt").value;
-  if(!prompt){alert("Enter prompt");return;}
+const FREE_LIMIT = 3;
+let inspoBase64 = null;
+let pendingCheckoutMode = null;
+let activeSlot = "A";
+let loaderInterval = null;
+let progressInterval = null;
+let loaderProgress = 6;
 
-  document.getElementById("loader").style.display="block";
+const loaderFrames = ["/loading/frame1.png","/loading/frame2.png","/loading/frame3.png","/loading/frame4.png"];
+const loaderCaptions = [
+  {text:"Sketching idea...", sub:"Starting the stencil..."},
+  {text:"Thinking it through...", sub:"Cleaning up the lines..."},
+  {text:"Finalizing stencil...", sub:"Making it bold..."},
+  {text:"Almost done...", sub:"Cow is out cold..."}
+];
 
-  const full = prompt + " " +
-    document.getElementById("style").value + " " +
-    document.getElementById("placement").value + " " +
-    document.getElementById("size").value + " " +
-    document.getElementById("color").value;
+document.getElementById("generateBtn").addEventListener("click", generate);
 
-  const res = await fetch("/api/generate",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({prompt:full})
-  });
+document.getElementById("inspoFile").addEventListener("change", (e) => {
+  const file = e.target.files && e.target.files[0];
+  const preview = document.getElementById("inspoPreview");
+  if(!file){
+    inspoBase64 = null;
+    preview.style.display = "none";
+    preview.src = "";
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    const result = String(evt.target.result || "");
+    const parts = result.split(",");
+    inspoBase64 = parts.length > 1 ? parts[1] : null;
+    preview.src = result;
+    preview.style.display = "block";
+  };
+  reader.readAsDataURL(file);
+});
 
-  const data = await res.json();
-
-  document.getElementById("loader").style.display="none";
-
-  const img = document.createElement("img");
-  img.src = "data:image/png;base64," + data.image;
-  document.getElementById("result").innerHTML="";
-  document.getElementById("result").appendChild(img);
+function todayKey(){ return new Date().toDateString(); }
+function getUsage(){
+  try{
+    const data = JSON.parse(localStorage.getItem("btdt_usage") || "{}");
+    if(data.date !== todayKey()) return { date: todayKey(), count: 0 };
+    return { date: todayKey(), count: Number(data.count || 0) };
+  } catch(e){
+    return { date: todayKey(), count: 0 };
+  }
 }
-</script>
+function setUsage(data){ localStorage.setItem("btdt_usage", JSON.stringify(data)); }
+function hasBypass(){
+  const sub = localStorage.getItem("btdt_subscriber_active") === "true";
+  const unlock = localStorage.getItem("btdt_unlock_active") === "true";
+  return sub || unlock;
+}
+function updateUI(){
+  const usage = getUsage();
+  document.getElementById("count").textContent = String(Math.max(0, FREE_LIMIT - usage.count));
+  document.getElementById("paywallBox").style.display = (!hasBypass() && usage.count >= FREE_LIMIT) ? "block" : "none";
+}
+function showStatus(msg){
+  const el = document.getElementById("status");
+  el.textContent = msg;
+  el.style.display = "block";
+}
+function hideStatus(){
+  const el = document.getElementById("status");
+  el.textContent = "";
+  el.style.display = "none";
+}
+function showError(msg){
+  const el = document.getElementById("error");
+  el.textContent = msg;
+  el.style.display = "block";
+}
+function hideError(){
+  const el = document.getElementById("error");
+  el.textContent = "";
+  el.style.display = "none";
+}
+function clearResult(){
+  document.getElementById("prompt").value = "";
+  document.getElementById("result").innerHTML = "";
+  hideError();
+  hideStatus();
+  inspoBase64 = null;
+  const file = document.getElementById("inspoFile");
+  const preview = document.getElementById("inspoPreview");
+  file.value = "";
+  preview.style.display = "none";
+  preview.src = "";
+}
+function buildPrompt(){
+  const prompt = document.getElementById("prompt").value.trim();
+  const style = document.getElementById("style").value;
+  const placement = document.getElementById("placement").value;
+  const size = document.getElementById("size").value;
+  const color = document.getElementById("color").value;
+  return `${prompt}. Tattoo style: ${style}. Placement: ${placement}. Size: ${size}. Color: ${color}.`;
+}
+function setLoaderFrame(index){
+  const frameA = document.getElementById("frameA");
+  const frameB = document.getElementById("frameB");
+  const caption = loaderCaptions[index];
+  document.getElementById("loadingText").textContent = caption.text;
+  document.getElementById("loadingSubtext").textContent = caption.sub;
 
+  if(activeSlot === "A"){
+    frameB.src = loaderFrames[index];
+    frameB.classList.add("active");
+    frameA.classList.remove("active");
+    activeSlot = "B";
+  } else {
+    frameA.src = loaderFrames[index];
+    frameA.classList.add("active");
+    frameB.classList.remove("active");
+    activeSlot = "A";
+  }
+}
+function startLoader(){
+  document.getElementById("loaderOverlay").style.display = "flex";
+  document.getElementById("bar").style.width = "6%";
+  loaderProgress = 6;
+  activeSlot = "A";
+  document.getElementById("frameA").src = loaderFrames[0];
+  document.getElementById("frameA").classList.add("active");
+  document.getElementById("frameB").classList.remove("active");
+  document.getElementById("loadingText").textContent = loaderCaptions[0].text;
+  document.getElementById("loadingSubtext").textContent = loaderCaptions[0].sub;
+
+  clearInterval(loaderInterval);
+  clearInterval(progressInterval);
+
+  let i = 0;
+  loaderInterval = setInterval(() => {
+    i = (i + 1) % loaderFrames.length;
+    setLoaderFrame(i);
+  }, 900);
+
+  progressInterval = setInterval(() => {
+    if(loaderProgress < 72) loaderProgress += 5;
+    else if(loaderProgress < 88) loaderProgress += 2;
+    else if(loaderProgress < 94) loaderProgress += 1;
+    document.getElementById("bar").style.width = loaderProgress + "%";
+  }, 480);
+}
+function stopLoader(){
+  clearInterval(loaderInterval);
+  clearInterval(progressInterval);
+  document.getElementById("bar").style.width = "100%";
+  setTimeout(() => { document.getElementById("loaderOverlay").style.display = "none"; }, 220);
+}
+async function generate(){
+  const usage = getUsage();
+  const result = document.getElementById("result");
+  const rawPrompt = document.getElementById("prompt").value.trim();
+
+  result.innerHTML = "";
+  hideError();
+  hideStatus();
+
+  if(!rawPrompt){
+    showError("Enter a prompt first.");
+    return;
+  }
+
+  if(!hasBypass() && usage.count >= FREE_LIMIT){
+    document.getElementById("paywallBox").style.display = "block";
+    showError("You’ve used your 3 free previews for today. Unlock or subscribe to keep going.");
+    return;
+  }
+
+  const builtPrompt = buildPrompt();
+  startLoader();
+  showStatus("Generating...");
+
+  try{
+    const res = await fetch("/api/generate", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({
+        prompt: builtPrompt,
+        reference_image: inspoBase64
+      })
+    });
+
+    const data = await res.json();
+    stopLoader();
+
+    if(!res.ok){
+      showError("API error: " + (data.error || "Unknown error"));
+      hideStatus();
+      return;
+    }
+
+    if(!data.image){
+      showError("No image returned.");
+      hideStatus();
+      return;
+    }
+
+    const img = document.createElement("img");
+    img.src = "data:image/png;base64," + data.image;
+    img.alt = "Generated tattoo";
+    result.appendChild(img);
+
+    if(!hasBypass()){
+      usage.count += 1;
+      setUsage(usage);
+    }
+    updateUI();
+    showStatus("Done.");
+  } catch(err){
+    stopLoader();
+    showError("Request failed: " + err.message);
+    hideStatus();
+  }
+}
+function openEmailModal(mode){
+  pendingCheckoutMode = mode;
+  document.getElementById("emailModalInput").value = "";
+  document.getElementById("emailModalBackdrop").style.display = "flex";
+}
+function closeEmailModal(){
+  document.getElementById("emailModalBackdrop").style.display = "none";
+  pendingCheckoutMode = null;
+}
+function confirmEmailModal(){
+  const email = document.getElementById("emailModalInput").value.trim().toLowerCase();
+  if(!email){
+    showError("Please enter your email to continue.");
+    return;
+  }
+  document.getElementById("emailModalBackdrop").style.display = "none";
+  if(pendingCheckoutMode){
+    const mode = pendingCheckoutMode;
+    pendingCheckoutMode = null;
+    runCheckout(mode, email);
+  }
+}
+function startCheckout(mode){
+  hideError();
+  hideStatus();
+  openEmailModal(mode);
+}
+async function runCheckout(mode, email){
+  try{
+    const res = await fetch("/api/create-checkout", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ mode, email })
+    });
+    const data = await res.json();
+    if(!res.ok || !data.url){
+      showError("Checkout error: " + (data.error || "No checkout URL returned."));
+      return;
+    }
+    window.location.href = data.url;
+  } catch(err){
+    showError("Checkout request failed: " + err.message);
+  }
+}
+function applyCheckoutReturn(){
+  const params = new URLSearchParams(window.location.search);
+  const checkout = params.get("checkout");
+  const mode = params.get("mode");
+  if(checkout === "success"){
+    if(mode === "unlock"){
+      localStorage.setItem("btdt_unlock_active", "true");
+      showStatus("Unlock active in this browser. You can keep generating.");
+    }
+    if(mode === "subscribe"){
+      localStorage.setItem("btdt_subscriber_active", "true");
+      showStatus("Subscription active in this browser. Generation limit bypassed.");
+    }
+    updateUI();
+    window.history.replaceState({}, "", window.location.pathname);
+  }
+}
+applyCheckoutReturn();
+updateUI();
+</script>
 </body>
 </html>

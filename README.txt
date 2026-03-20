@@ -1,19 +1,17 @@
-Styled UI + clean paywall layer package.
+Enhanced styled generator + paywall package.
 
-What this includes:
-- working styled generator
-- dropdowns for style, placement, size, color
-- optional inspiration upload with preview
+Included:
+- restored fuller style options
+- restored fuller placement options
+- fuller size and color options
+- inspiration upload with preview
+- safe multi-frame loader animation panels
 - 3 free previews per day
-- clean paywall box after free limit is reached
-- Stripe Checkout routes for:
-  - $1.99 unlock
-  - $14.99/month subscription
+- clean Stripe Checkout paywall layer
 
 What this version does NOT do yet:
 - no Supabase persistence yet
-- unlock/subscription state is stored in localStorage after successful checkout return
-- this is a clean intermediate paywall layer on top of the stable generator
+- unlock/subscription state still stored in localStorage after successful Stripe return
 
 Required Vercel env vars:
 OPENAI_API_KEY
@@ -21,6 +19,3 @@ STRIPE_SECRET_KEY
 STRIPE_PRICE_UNLOCK
 STRIPE_PRICE_SUB_MONTHLY
 APP_URL
-
-Recommended APP_URL:
-https://btdt-generator-4tts.vercel.app
