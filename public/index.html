@@ -122,6 +122,7 @@ button{padding:14px 24px;border:none;border-radius:14px;cursor:pointer;font-size
 </style>
 </head>
 <body>
+<!-- VERIFIED: NO EMAIL REQUIRED FOR PREVIEW -->
 <main>
   <div class="shell">
     <aside class="panel left-panel">
@@ -408,44 +409,68 @@ function setLockUI(unlocked, subActive){
 // PREVIEW GENERATION DOES NOT REQUIRE EMAIL
 async function generate(){
   const rawPrompt = document.getElementById("prompt").value.trim();
-  const email = currentEmail || "";
   const result = document.getElementById("result");
   result.innerHTML = "";
-  hideError(); hideStatus();
-  if(!rawPrompt){ showError("Please enter a tattoo idea."); return; }
-  currentEmail = email;
+  hideError();
+  hideStatus();
+
+  if(!rawPrompt){
+    showError("Please enter a tattoo idea.");
+    return;
+  }
+
+  // Email is optional for previews.
+  currentEmail = currentEmail || "";
   const prompt = buildPrompt(rawPrompt);
+
   startLoader();
+
   try{
     const minLoader = new Promise(resolve => setTimeout(resolve, totalSequenceTime() + 150));
     const req = fetch("/api/generate",{
       method:"POST",
       headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({ prompt, email, reference_image: inspoBase64 })
+      body:JSON.stringify({ prompt, email: currentEmail || "", reference_image: inspoBase64 })
     }).then(async (res) => ({ ok:res.ok, status:res.status, data: await res.json() }));
+
     const [{ ok, status, data }] = await Promise.all([req, minLoader]);
     stopLoader();
-    if(!ok){ showError("API error " + status + ": " + (data.error || JSON.stringify(data))); return; }
+
+    if(!ok){
+      showError("API error " + status + ": " + (data.error || JSON.stringify(data)));
+      return;
+    }
+
     if(data.preview_b64 && data.image_id){
       currentImageId = data.image_id;
+      if(currentEmail){
+        localStorage.setItem("btdt_last_email", currentEmail);
+      }
       localStorage.setItem("btdt_last_image_id", currentImageId);
-      localStorage.setItem("btdt_last_email", currentEmail);
+
       const img = document.createElement("img");
       img.src = "data:image/png;base64," + data.preview_b64;
       img.alt = "Generated tattoo preview";
       result.appendChild(img);
+
       setLockUI(Boolean(data.unlocked), Boolean(data.subscription_active));
-      if(data.subscription_active){ showStatus("Subscription active. This image is already unlocked."); }
+      if(data.subscription_active){
+        showStatus("Subscription active. This image is already unlocked.");
+      }
       return;
     }
+
     showError("Generation finished, but no preview was returned.");
-  } catch(e){ stopLoader(); showError("Request failed: " + (e && e.message ? e.message : String(e))); }
+  } catch(e){
+    stopLoader();
+    showError("Request failed: " + (e && e.message ? e.message : String(e)));
+  }
 }
+
 async function startCheckout(mode){
   hideError(); hideStatus();
   const email = currentEmail || "";
-  if(!email){ showError("Please enter your email first."); return; }
-  currentEmail = email;
+    currentEmail = email;
   if(mode === "unlock" && !currentImageId){ showError("Generate an image first."); return; }
   const res = await fetch("/api/create-checkout", {
     method:"POST", headers:{"Content-Type":"application/json"},
