@@ -53,3 +53,12 @@ Updated in this version:
 - expanded Tattoo Style options
 - expanded Placement options
 - expanded Size options
+
+
+Rebuilt full package note:
+This zip contains the full no-login paywall system with expanded Tattoo Style, Placement, and Size options in public/index.html.
+Replace the full Vercel project files from this package, then redeploy.
+
+
+Updated in this version:
+- expanded Color options confirmed in public/index.html
