@@ -1,596 +1,110 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BTDT Generator + Paywall</title>
-<link href="https://fonts.googleapis.com/css2?family=Nosifer&display=swap" rel="stylesheet">
+<title>BTDT Generator</title>
 <style>
-*{box-sizing:border-box}
-:root{
-  --cream:#f6e4cc; --brown:#5f3318; --brown-dark:#3b1b08; --tan:#efe1d5;
-  --card:#fffaf6; --accent:#a5683a; --line:#d8c2b0; --green:#1d7f47; --red:#8b2e1d;
-}
-body{margin:0;min-height:100vh;background:var(--cream);font-family:Arial,sans-serif;color:var(--brown-dark)}
-main{max-width:1120px;margin:auto;padding:2rem 1rem 3rem}
-.shell{display:grid;grid-template-columns:340px minmax(0,1fr);gap:1.25rem;align-items:start}
-.panel{background:rgba(255,255,255,.96);border-radius:24px;box-shadow:0 12px 30px rgba(0,0,0,.14);border:1px solid rgba(95,51,24,.08)}
-.left-panel{padding:1.2rem;position:sticky;top:1rem}
-.right-panel{padding:1.35rem}
-h1{margin:.15rem 0 .4rem;text-align:left;font-size:2rem;color:#111;font-family:'Nosifer',cursive}
-.subhead{margin:0 0 1rem;line-height:1.55;color:#5a3118}
-.section{background:var(--card);border:2px solid var(--line);border-radius:18px;padding:1rem;margin-bottom:.9rem}
-.section h3{margin:0 0 .75rem;font-size:1rem;color:#5a3118;font-family:'Nosifer',cursive;letter-spacing:.3px}
-.option-grid{display:grid;grid-template-columns:1fr 1fr;gap:.55rem}
-.option-grid.compact{grid-template-columns:1fr}
-.option-grid input{display:none}
-.option-grid label{display:block;width:100%;padding:.7rem .8rem;border:2px solid #cfb299;border-radius:14px;background:#fff;cursor:pointer;font-size:.92rem;font-weight:700;text-align:center}
-.option-grid input:checked + label{background:var(--accent);color:#fff;border-color:var(--accent)}
-.small{font-size:.85rem;opacity:.8}
-.prompt-shell{background:var(--card);border:2px solid var(--line);border-radius:20px;padding:1rem}
-.prompt-shell h2{margin:0 0 .75rem;font-size:1.2rem;color:#5a3118;font-family:'Nosifer',cursive}
-textarea, input[type="email"]{width:100%;padding:14px;border:2px solid var(--line);border-radius:16px;font-size:16px;font-family:inherit;color:#3d1e0b;background:#fffdfb}
-textarea{min-height:160px;resize:vertical}
-
-.select-wrap{position:relative}
-.select-wrap::after{
-  content:"▾";
-  position:absolute;
-  right:14px;
-  top:50%;
-  transform:translateY(-50%);
-  font-size:18px;
-  color:#6b3c1c;
-  pointer-events:none;
-}
-.select-field{
-  width:100%;
-  padding:13px 42px 13px 14px;
-  border:2px solid var(--line);
-  border-radius:16px;
-  font-size:15px;
-  color:#3d1e0b;
-  background:
-    linear-gradient(180deg, #fffdfb 0%, #f7ede4 100%);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.75);
-  appearance:none;
-  -webkit-appearance:none;
-  -moz-appearance:none;
-  cursor:pointer;
-  font-family:'Nosifer', cursive;
-  letter-spacing:.3px;
-}
-.select-field:hover{border-color:#c79c74}
-.select-field:focus{
-  outline:none;
-  border-color:#a5683a;
-  box-shadow:0 0 0 4px rgba(165,104,58,.15);
-}
-
-.upload-shell{
-  border:2px dashed #cfb299;
-  border-radius:16px;
-  padding:1rem;
-  text-align:center;
-  background:
-    linear-gradient(180deg, #fffdfb 0%, #f7ede4 100%);
-}
-.upload-btn{
-  display:inline-block;
-  padding:.8rem 1rem;
-  border-radius:14px;
-  background:#fff;
-  border:2px solid var(--line);
-  font-weight:700;
-  color:#5a3118;
-  cursor:pointer;
-}
-.upload-btn:hover{border-color:#c79c74}
-.upload-shell input{display:none}
-.preview{
-  margin:.9rem auto 0;
-  max-width:220px;
-  width:100%;
-  border-radius:12px;
-  display:none;
-  box-shadow:0 8px 18px rgba(0,0,0,.12);
-  border:2px solid #ead6c7;
-}
-.button-row{display:flex;gap:.75rem;justify-content:flex-start;flex-wrap:wrap;margin-top:1rem}
-button{padding:14px 24px;border:none;border-radius:14px;cursor:pointer;font-size:.95rem;font-weight:700}
-.primary{background:var(--accent);color:#fff;box-shadow:0 8px 18px rgba(0,0,0,.18)}
-.secondary{background:var(--tan);color:#5a3118}
-.ghost{background:#fff;border:2px solid var(--line);color:#5a3118}
-#loader{display:none;margin:1rem auto 0;max-width:640px;text-align:center}
-#loaderStage{width:min(100%, 640px);margin:0 auto}
-#cowFrame{width:100%;height:auto;object-fit:contain;border:3px solid #111;border-radius:20px;background:#fff;box-shadow:8px 8px 0 #111}
-#loadingText{margin:16px 0 8px;font-size:24px;font-weight:900}
-#loadingSubtext{margin:0 0 10px;font-size:14px;opacity:.8}
-.progress{width:min(92%,360px);height:18px;border:3px solid #111;background:#fff;margin:12px auto;border-radius:999px;overflow:hidden;box-shadow:4px 4px 0 #111}
-.bar{height:100%;width:6%;background:linear-gradient(90deg,#ff8ab4,#ffd36b);transition:width .35s ease}
-#statusBox, #errorBox{display:none;margin-top:1rem;padding:1rem;border-radius:14px;white-space:pre-wrap}
-#statusBox{background:#eefaf3;border:2px solid #8fd0ab;color:var(--green)}
-#errorBox{background:#fff2f0;border:2px solid #e2a29b;color:var(--red)}
-#usageBox{display:block;margin-top:1rem;padding:.9rem 1rem;border-radius:14px;background:#fff7ec;border:2px solid #e5c6a7;color:#6b3c1c}
-#result{margin-top:1rem;text-align:center}
-#result img{max-width:min(100%, 760px);width:100%;border-radius:18px;box-shadow:0 12px 30px rgba(0,0,0,.16);background:#fff}
-.locked-badge,.unlocked-badge{display:inline-block;padding:.45rem .7rem;border-radius:999px;font-weight:700;margin:.5rem 0}
-.locked-badge{background:#fff0cf;color:#6d4d00}
-.unlocked-badge{background:#e7fff1;color:#1d7f47}
-.action-row{display:flex;flex-wrap:wrap;gap:.75rem;justify-content:center;margin-top:1rem}
-@media (max-width:980px){.shell{grid-template-columns:1fr}.left-panel{position:static}}
-@media (max-width:620px){.button-row button,.action-row button{width:100%}}
+body{font-family:sans-serif;background:#fff3e8;padding:20px}
+select,input,button{padding:10px;margin:5px 0;width:100%}
+#result img{max-width:100%;margin-top:20px}
 </style>
 </head>
 <body>
-<!-- VERIFIED: NO EMAIL REQUIRED FOR PREVIEW -->
-<!-- VERIFIED: 3 FREE PREVIEWS PER DAY ENABLED -->
-<main>
-  <div class="shell">
-    <aside class="panel left-panel">
-      <!-- EMAIL SECTION REMOVED: popup only -->
-      <h1>Generator + Unlocks</h1>
-      <p class="subhead">No-login version with dropdown controls and optional inspiration upload.</p>
 
-      <div class="section">
-        <h3>Output Type</h3>
-        <div class="option-grid compact">
-          <input type="radio" name="outputType" id="out1" value="tattoo design" checked><label for="out1">Tattoo Design</label>
-          <input type="radio" name="outputType" id="out2" value="stencil"><label for="out2">Stencil Mode</label>
-          <input type="radio" name="outputType" id="out3" value="flash sheet"><label for="out3">Flash Sheet</label>
-        </div>
-      </div>
+<h1>Been There Done Tat</h1>
 
-      <div class="section">
-        <h3>Tattoo Style</h3>
-        <div class="small" style="margin-bottom:.6rem;">Pick the closest vibe. The prompt will combine this with your idea.</div>
-        <div class="select-wrap">
-          <select id="styleSelect" class="select-field">
-            <option value="traditional" selected>Traditional</option>
-            <option value="neo traditional">Neo Traditional</option>
-            <option value="Japanese">Japanese</option>
-            <option value="blackwork">Blackwork</option>
-            <option value="cartoony">Cartoony</option>
-            <option value="fine line">Fine Line</option>
-            <option value="illustrative">Illustrative</option>
-            <option value="tribal">Tribal</option>
-            <option value="realism">Realism</option>
-            <option value="ignorant style">Ignorant</option>
-            <option value="patchwork">Patchwork</option>
-            <option value="bio-organic">Bio-Organic</option>
-            <option value="surrealism">Surreal</option>
-            <option value="chicano">Chicano</option>
-            <option value="watercolor">Watercolor</option>
-            <option value="dotwork">Dotwork</option>
-          </select>
-        </div>
-      </div>
+<textarea id="prompt" placeholder="Describe your tattoo"></textarea>
 
-      <div class="section">
-        <h3>Placement</h3>
-        <div class="small" style="margin-bottom:.6rem;">This helps composition and proportions feel more tattoo-ready.</div>
-        <div class="select-wrap">
-          <select id="placementSelect" class="select-field">
-            <option value="arm" selected>Arm</option>
-            <option value="forearm">Forearm</option>
-            <option value="upper arm">Upper Arm</option>
-            <option value="wrist">Wrist</option>
-            <option value="hand">Hand</option>
-            <option value="fingers">Fingers</option>
-            <option value="thigh">Thigh</option>
-            <option value="calf">Calf</option>
-            <option value="shin">Shin</option>
-            <option value="ankle">Ankle</option>
-            <option value="knee">Knee</option>
-            <option value="chest">Chest</option>
-            <option value="sternum">Sternum</option>
-            <option value="stomach">Stomach</option>
-            <option value="back">Back</option>
-            <option value="shoulder blade">Shoulder Blade</option>
-            <option value="neck">Neck</option>
-            <option value="behind ear">Behind Ear</option>
-          </select>
-        </div>
-      </div>
+<select id="style">
+<option>Traditional</option>
+<option>Fine Line</option>
+<option>Japanese</option>
+<option>Blackwork</option>
+</select>
 
-      <div class="section">
-        <h3>Size</h3>
-        <div class="small" style="margin-bottom:.6rem;">Choose scale so the design reads better for the body area.</div>
-        <div class="select-wrap">
-          <select id="sizeSelect" class="select-field">
-            <option value="tiny" selected>Tiny</option>
-            <option value="small">Small</option>
-            <option value="medium">Medium</option>
-            <option value="large">Large</option>
-            <option value="palm size">Palm Size</option>
-            <option value="postcard size">Postcard</option>
-            <option value="quarter sleeve">Quarter Sleeve</option>
-            <option value="half sleeve">Half Sleeve</option>
-            <option value="full sleeve">Full Sleeve</option>
-            <option value="chest piece">Chest Piece</option>
-            <option value="back piece">Back Piece</option>
-            <option value="leg sleeve">Leg Sleeve</option>
-          </select>
-        </div>
-      </div>
+<select id="placement">
+<option>Arm</option>
+<option>Leg</option>
+<option>Chest</option>
+<option>Back</option>
+</select>
 
-      <div class="section">
-        <h3>Color</h3>
-        <div class="small" style="margin-bottom:.6rem;">Choose how you want the design rendered.</div>
-        <div class="select-wrap">
-          <select id="colorSelect" class="select-field">
-            <option value="black and grey" selected>Black & Grey</option>
-            <option value="full color">Full Color</option>
-            <option value="black ink only">Black Ink Only</option>
-            <option value="muted color palette">Muted Color</option>
-            <option value="red and black">Red & Black</option>
-            <option value="pastel color palette">Pastel</option>
-            <option value="high contrast vibrant color">Vibrant</option>
-            <option value="limited two-tone palette">Two-Tone</option>
-            <option value="no color with skin breaks">Skin Breaks</option>
-            <option value="sepia toned shading">Sepia</option>
-          </select>
-        </div>
-      </div>
+<select id="size">
+<option>Small</option>
+<option>Medium</option>
+<option>Large</option>
+</select>
 
-      <div class="section">
-        <h3>Inspo Picture</h3>
-        <div class="small" style="margin-bottom:.6rem;">Optional: upload an inspiration image for vibe, subject, or composition.</div>
-        <div class="upload-shell">
-          <label class="upload-btn" for="inspoFile">Choose Inspiration Image</label>
-          <input id="inspoFile" type="file" accept="image/*">
-          <img id="inspoPreview" class="preview" alt="Inspo preview">
-        </div>
-      </div>
-    </aside>
+<select id="color">
+<option>Black & Grey</option>
+<option>Full Color</option>
+<option>Red & Black</option>
+</select>
 
-    <section class="panel right-panel">
-      <div class="prompt-shell">
-        <h2>Your Idea</h2>
-        <textarea id="prompt" placeholder="Example: creepy demon frog with horns, sharp teeth, bold linework, funny but mean expression"></textarea>
-        <div class="button-row">
-          <button class="primary" onclick="generate()">Generate Preview</button>
-          <button class="secondary" type="button" onclick="clearResult()">Clear</button>
-        </div>
-      </div>
+<input type="file" id="inspoFile">
 
-      <div id="usageBox">Free previews left today: <strong id="usageCount">3</strong></div>
+<div>Free left: <span id="count">3</span></div>
 
-      <div id="loader">
-        <div id="loaderStage">
-          <img id="cowFrame" src="/loading/frame1.png" alt="Loader frame">
-        </div>
-        <p id="loadingText">Sketching idea...</p>
-        <p id="loadingSubtext">Starting the stencil...</p>
-        <div class="progress"><div id="bar" class="bar"></div></div>
-      </div>
+<button onclick="generate()">Generate</button>
 
-      <div id="statusBox"></div>
-      <div id="errorBox"></div>
-      <div id="result"></div>
-
-      <div id="postActions" style="display:none;">
-        <div id="lockState"></div>
-        <div class="action-row">
-          <button id="unlockBtn" class="primary" onclick="startCheckout('unlock')">Unlock Image — $1.99</button>
-          <button id="subscribeBtn" class="secondary" onclick="startCheckout('subscribe')">Subscribe — $14.99/mo</button>
-          <button id="downloadBtn" class="ghost" style="display:none;" onclick="downloadUnlocked()">Download</button>
-          <button id="publishBtn" class="ghost" style="display:none;" onclick="publishGallery()">Add to Gallery</button>
-          <button id="merchBtn" class="ghost" style="display:none;" onclick="merchNote()">Merch Hooks Ready</button>
-        </div>
-        <div class="small" style="text-align:center;margin-top:.75rem;">
-          Paid images can be downloaded and published. Merch checkout hooks are scaffolded for the next step.
-        </div>
-      </div>
-    </section>
-  </div>
-</main>
+<div id="result"></div>
 
 <script>
-const frames = ["/loading/frame1.png","/loading/frame2.png","/loading/frame3.png","/loading/frame4.png"];
-const captions = [
-  {text:"Sketching idea...", sub:"Starting the stencil..."},
-  {text:"Thinking it through...", sub:"Cleaning up the lines..."},
-  {text:"Finalizing stencil...", sub:"Making it bold..."},
-  {text:"Almost done...", sub:"Cow is out cold..."}
-];
-const stageDurations = [1500, 1500, 1400];
-let frameTimers = [];
-let progressInterval = null;
-let progress = 6;
-let currentImageId = null;
-let currentEmail = null;
-let inspoBase64 = null;
+const LIMIT = 3;
 
-document.addEventListener("DOMContentLoaded", () => {
-  const fileInput = document.getElementById("inspoFile");
-  const preview = document.getElementById("inspoPreview");
-  if (fileInput) {
-    fileInput.addEventListener("change", (e) => {
-      const file = e.target.files && e.target.files[0];
-      if (!file) {
-        inspoBase64 = null;
-        preview.style.display = "none";
-        preview.src = "";
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = (evt) => {
-        const result = evt.target.result || "";
-        const parts = String(result).split(",");
-        inspoBase64 = parts.length > 1 ? parts[1] : null;
-        preview.src = result;
-        preview.style.display = "block";
-      };
-      reader.readAsDataURL(file);
-    });
+function getUsage(){
+  const d = JSON.parse(localStorage.getItem("usage")||"{}");
+  if(d.date !== new Date().toDateString()){
+    return {date:new Date().toDateString(),count:0};
   }
-});
-
-function todayKey(){
-  return new Date().toDateString();
-}
-function getUsageData(){
-  try{
-    const raw = localStorage.getItem("btdt_free_usage");
-    const parsed = raw ? JSON.parse(raw) : {};
-    if(parsed.date !== todayKey()){
-      return { date: todayKey(), count: 0 };
-    }
-    return { date: todayKey(), count: Number(parsed.count || 0) };
-  } catch(e){
-    return { date: todayKey(), count: 0 };
-  }
-}
-function setUsageData(data){
-  localStorage.setItem("btdt_free_usage", JSON.stringify(data));
-}
-function getFreePreviewsLeft(){
-  const data = getUsageData();
-  return Math.max(0, FREE_LIMIT_PER_DAY - data.count);
-}
-function incrementFreePreviewUsage(){
-  const data = getUsageData();
-  data.count = Math.min(FREE_LIMIT_PER_DAY, Number(data.count || 0) + 1);
-  setUsageData(data);
-  updateUsageUI();
-}
-function updateUsageUI(subscriptionActive = false){
-  const box = document.getElementById("usageBox");
-  const count = document.getElementById("usageCount");
-  if(!box || !count) return;
-  if(subscriptionActive){
-    box.innerHTML = 'Subscription active: <strong>generation limit bypassed</strong>';
-    return;
-  }
-  count.textContent = String(getFreePreviewsLeft());
+  return d;
 }
 
+function saveUsage(d){
+  localStorage.setItem("usage",JSON.stringify(d));
+}
 
-function dropdownValue(id, fallback=""){
-  const el = document.getElementById(id);
-  return el ? el.value : fallback;
+function updateUI(){
+  const d = getUsage();
+  document.getElementById("count").innerText = LIMIT - d.count;
 }
-function buildPrompt(rawPrompt){
-  const outputType = document.querySelector('input[name="outputType"]:checked')?.value || "tattoo design";
-  const style = dropdownValue("styleSelect", "traditional");
-  const placement = dropdownValue("placementSelect", "arm");
-  const size = dropdownValue("sizeSelect", "tiny");
-  const color = dropdownValue("colorSelect", "black and grey");
-  let outputText = "";
-  if(outputType === "stencil"){
-    outputText = "Output type: clean tattoo stencil, bold black linework, white background, no shading, no gradients, tattoo transfer-ready.";
-  } else if(outputType === "flash sheet"){
-    outputText = "Output type: tattoo flash sheet with multiple small design variations arranged on one clean page.";
-  } else {
-    outputText = "Output type: polished tattoo design concept.";
-  }
-  return `${rawPrompt}. Tattoo style: ${style}. Placement: ${placement}. Size: ${size}. Color: ${color}. ${outputText}`;
-}
-function showError(msg){ const box = document.getElementById("errorBox"); box.textContent = msg; box.style.display = "block"; }
-function hideError(){ const box = document.getElementById("errorBox"); box.textContent=""; box.style.display="none"; }
-function showStatus(msg){ const box = document.getElementById("statusBox"); box.textContent=msg; box.style.display="block"; }
-function hideStatus(){ const box = document.getElementById("statusBox"); box.textContent=""; box.style.display="none"; }
-function clearResult(){
-  document.getElementById("prompt").value="";
-  document.getElementById("result").innerHTML="";
-  document.getElementById("postActions").style.display="none";
-  currentImageId=null;
-  inspoBase64 = null;
-  const fileInput = document.getElementById("inspoFile");
-  const preview = document.getElementById("inspoPreview");
-  if (fileInput) fileInput.value = "";
-  if (preview) { preview.style.display = "none"; preview.src = ""; }
-  hideError();
-  hideStatus();
-}
-function updateFrame(i){ document.getElementById("cowFrame").src = frames[i]; document.getElementById("loadingText").textContent = captions[i].text; document.getElementById("loadingSubtext").textContent = captions[i].sub; }
-function clearFrameTimers(){ frameTimers.forEach(t => clearTimeout(t)); frameTimers = []; }
-function totalSequenceTime(){ return stageDurations.reduce((a,b)=>a+b,0); }
-function startLoader(){
-  document.getElementById("loader").style.display = "block";
-  document.getElementById("bar").style.width = "6%";
-  progress = 6;
-  updateFrame(0);
-  clearFrameTimers();
-  clearInterval(progressInterval);
-  let t1 = stageDurations[0], t2 = stageDurations[0]+stageDurations[1], t3 = t2+stageDurations[2];
-  frameTimers.push(setTimeout(() => updateFrame(1), t1));
-  frameTimers.push(setTimeout(() => updateFrame(2), t2));
-  frameTimers.push(setTimeout(() => updateFrame(3), t3));
-  progressInterval = setInterval(() => {
-    if(progress < 70) progress += 4;
-    else if(progress < 86) progress += 2;
-    else if(progress < 93) progress += 1;
-    document.getElementById("bar").style.width = progress + "%";
-  }, 420);
-}
-function stopLoader(){ clearFrameTimers(); clearInterval(progressInterval); document.getElementById("bar").style.width="100%"; setTimeout(() => { document.getElementById("loader").style.display="none"; }, 180); }
-function setLockUI(unlocked, subActive){
-  document.getElementById("postActions").style.display = "block";
-  const lockState = document.getElementById("lockState");
-  const unlockBtn = document.getElementById("unlockBtn");
-  const subscribeBtn = document.getElementById("subscribeBtn");
-  const downloadBtn = document.getElementById("downloadBtn");
-  const publishBtn = document.getElementById("publishBtn");
-  const merchBtn = document.getElementById("merchBtn");
-  if(unlocked || subActive){
-    lockState.innerHTML = '<span class="unlocked-badge">Unlocked</span>';
-    if(subActive){ updateUsageUI(true); }
-    unlockBtn.style.display = "none";
-    subscribeBtn.style.display = "none";
-    downloadBtn.style.display = "";
-    publishBtn.style.display = "";
-    merchBtn.style.display = "";
-  } else {
-    lockState.innerHTML = '<span class="locked-badge">Preview only</span>';
-    unlockBtn.style.display = "";
-    subscribeBtn.style.display = "";
-    downloadBtn.style.display = "none";
-    publishBtn.style.display = "none";
-    merchBtn.style.display = "none";
-  }
-}
-// PREVIEW GENERATION DOES NOT REQUIRE EMAIL
+
 async function generate(){
-  const rawPrompt = document.getElementById("prompt").value.trim();
-  const result = document.getElementById("result");
-  result.innerHTML = "";
-  hideError();
-  hideStatus();
-
-  if(!rawPrompt){
-    showError("Please enter a tattoo idea.");
+  const d = getUsage();
+  if(d.count >= LIMIT){
+    alert("Free limit reached");
     return;
   }
 
-  // Email is optional for previews.
-  currentEmail = currentEmail || "";
-  const prompt = buildPrompt(rawPrompt);
+  const prompt = document.getElementById("prompt").value;
+  if(!prompt){alert("Enter prompt");return;}
 
-  // If no active subscription, enforce 3 free previews per day.
-  let subActive = false;
-  if(currentEmail){
-    try{
-      const statusRes = await fetch(`/api/unlock-status?image_id=${encodeURIComponent(currentImageId || "")}&email=${encodeURIComponent(currentEmail)}`);
-      if(statusRes.ok){
-        const statusData = await statusRes.json();
-        subActive = Boolean(statusData.subscription_active);
-      }
-    } catch(e){}
-  }
+  const full = prompt + " " +
+    document.getElementById("style").value + " " +
+    document.getElementById("placement").value + " " +
+    document.getElementById("size").value + " " +
+    document.getElementById("color").value;
 
-  if(!subActive && getFreePreviewsLeft() <= 0){
-    document.getElementById("postActions").style.display = "block";
-    document.getElementById("lockState").innerHTML = '<span class="locked-badge">Free preview limit reached</span>';
-    showError("You’ve used your 3 free previews for today. Unlock an image or subscribe to keep going.");
-    return;
-  }
-
-  startLoader();
-
-  try{
-    const minLoader = new Promise(resolve => setTimeout(resolve, totalSequenceTime() + 150));
-    const req = fetch("/api/generate",{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({ prompt, email: currentEmail || "", reference_image: inspoBase64 })
-    }).then(async (res) => ({ ok:res.ok, status:res.status, data: await res.json() }));
-
-    const [{ ok, status, data }] = await Promise.all([req, minLoader]);
-    stopLoader();
-
-    if(!ok){
-      showError("API error " + status + ": " + (data.error || JSON.stringify(data)));
-      return;
-    }
-
-    if(data.preview_b64 && data.image_id){
-      currentImageId = data.image_id;
-      if(currentEmail){
-        localStorage.setItem("btdt_last_email", currentEmail);
-      }
-      localStorage.setItem("btdt_last_image_id", currentImageId);
-
-      const img = document.createElement("img");
-      img.src = "data:image/png;base64," + data.preview_b64;
-      img.alt = "Generated tattoo preview";
-      result.appendChild(img);
-
-      if(!Boolean(data.subscription_active)){
-        incrementFreePreviewUsage();
-      } else {
-        updateUsageUI(true);
-      }
-
-      setLockUI(Boolean(data.unlocked), Boolean(data.subscription_active));
-      if(data.subscription_active){
-        showStatus("Subscription active. This image is already unlocked.");
-      }
-      return;
-    }
-
-    showError("Generation finished, but no preview was returned.");
-  } catch(e){
-    stopLoader();
-    showError("Request failed: " + (e && e.message ? e.message : String(e)));
-  }
-}
-
-async function startCheckout(mode){
-  hideError(); hideStatus();
-  const email = currentEmail || "";
-    currentEmail = email;
-  if(mode === "unlock" && !currentImageId){ showError("Generate an image first."); return; }
-  const res = await fetch("/api/create-checkout", {
-    method:"POST", headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({ mode, email, image_id: currentImageId })
+  const res = await fetch("/api/generate",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({prompt:full})
   });
+
   const data = await res.json();
-  if(!res.ok || !data.url){ showError("Checkout error: " + (data.error || "No checkout URL returned.")); return; }
-  window.location.href = data.url;
+
+  const img = document.createElement("img");
+  img.src = "data:image/png;base64," + data.image;
+  document.getElementById("result").innerHTML="";
+  document.getElementById("result").appendChild(img);
+
+  d.count++;
+  saveUsage(d);
+  updateUI();
 }
-async function refreshUnlockStatus(){
-  const params = new URLSearchParams(window.location.search);
-  const imageId = params.get("image_id") || localStorage.getItem("btdt_last_image_id");
-  const email = params.get("email") || localStorage.getItem("btdt_last_email");
-  if(!imageId || !email) return;
-  currentImageId = imageId; currentEmail = email;
-  const res = await fetch(`/api/unlock-status?image_id=${encodeURIComponent(imageId)}&email=${encodeURIComponent(email)}`);
-  const data = await res.json();
-  if(res.ok){
-    setLockUI(Boolean(data.unlocked), Boolean(data.subscription_active));
-    if(Boolean(data.subscription_active)){
-      updateUsageUI(true);
-    } else {
-      updateUsageUI();
-    }
-    if(params.get("checkout") === "success" && (data.unlocked || data.subscription_active)){
-      showStatus("Payment confirmed. Your image is unlocked.");
-      window.history.replaceState({}, "", window.location.pathname);
-    }
-  }
-}
-async function downloadUnlocked(){
-  if(!currentImageId || !currentEmail){ showError("Missing image or email."); return; }
-  const res = await fetch(`/api/download-image?image_id=${encodeURIComponent(currentImageId)}&email=${encodeURIComponent(currentEmail)}`);
-  const data = await res.json();
-  if(!res.ok){ showError(data.error || "Download failed."); return; }
-  const a = document.createElement("a");
-  a.href = "data:image/png;base64," + data.image_b64;
-  a.download = `${currentImageId}.png`;
-  document.body.appendChild(a); a.click(); a.remove();
-}
-async function publishGallery(){
-  if(!currentImageId || !currentEmail){ showError("Missing image or email."); return; }
-  const res = await fetch("/api/gallery-publish",{ method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ image_id: currentImageId, email: currentEmail }) });
-  const data = await res.json();
-  if(!res.ok){ showError(data.error || "Publish failed."); return; }
-  showStatus("Image added to gallery.");
-}
-function merchNote(){ showStatus("Merch hooks are scaffolded in this package. Next step is connecting Printful for shirt/sticker checkout."); }
-updateUsageUI();
-refreshUnlockStatus();
+
+updateUI();
 </script>
+
 </body>
 </html>
