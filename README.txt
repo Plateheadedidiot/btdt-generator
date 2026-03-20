@@ -1,21 +1,11 @@
-Enhanced styled generator + paywall package.
+Restored style + body placement package.
 
-Included:
-- restored fuller style options
-- restored fuller placement options
-- fuller size and color options
-- inspiration upload with preview
-- safe multi-frame loader animation panels
-- 3 free previews per day
-- clean Stripe Checkout paywall layer
+What changed:
+- restored page style
+- embedded loader, not fullscreen
+- fuller options restored
+- prompt now defaults to showing the tattoo on the chosen body part
+- optional checkbox to disable body mockup if you want standalone tattoo concepts
 
-What this version does NOT do yet:
-- no Supabase persistence yet
-- unlock/subscription state still stored in localStorage after successful Stripe return
-
-Required Vercel env vars:
+Required env vars:
 OPENAI_API_KEY
-STRIPE_SECRET_KEY
-STRIPE_PRICE_UNLOCK
-STRIPE_PRICE_SUB_MONTHLY
-APP_URL
