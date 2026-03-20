@@ -111,6 +111,7 @@ button{padding:14px 24px;border:none;border-radius:14px;cursor:pointer;font-size
 #statusBox, #errorBox{display:none;margin-top:1rem;padding:1rem;border-radius:14px;white-space:pre-wrap}
 #statusBox{background:#eefaf3;border:2px solid #8fd0ab;color:var(--green)}
 #errorBox{background:#fff2f0;border:2px solid #e2a29b;color:var(--red)}
+#usageBox{display:block;margin-top:1rem;padding:.9rem 1rem;border-radius:14px;background:#fff7ec;border:2px solid #e5c6a7;color:#6b3c1c}
 #result{margin-top:1rem;text-align:center}
 #result img{max-width:min(100%, 760px);width:100%;border-radius:18px;box-shadow:0 12px 30px rgba(0,0,0,.16);background:#fff}
 .locked-badge,.unlocked-badge{display:inline-block;padding:.45rem .7rem;border-radius:999px;font-weight:700;margin:.5rem 0}
@@ -123,6 +124,7 @@ button{padding:14px 24px;border:none;border-radius:14px;cursor:pointer;font-size
 </head>
 <body>
 <!-- VERIFIED: NO EMAIL REQUIRED FOR PREVIEW -->
+<!-- VERIFIED: 3 FREE PREVIEWS PER DAY ENABLED -->
 <main>
   <div class="shell">
     <aside class="panel left-panel">
@@ -252,6 +254,8 @@ button{padding:14px 24px;border:none;border-radius:14px;cursor:pointer;font-size
         </div>
       </div>
 
+      <div id="usageBox">Free previews left today: <strong id="usageCount">3</strong></div>
+
       <div id="loader">
         <div id="loaderStage">
           <img id="cowFrame" src="/loading/frame1.png" alt="Loader frame">
@@ -323,6 +327,46 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
+function todayKey(){
+  return new Date().toDateString();
+}
+function getUsageData(){
+  try{
+    const raw = localStorage.getItem("btdt_free_usage");
+    const parsed = raw ? JSON.parse(raw) : {};
+    if(parsed.date !== todayKey()){
+      return { date: todayKey(), count: 0 };
+    }
+    return { date: todayKey(), count: Number(parsed.count || 0) };
+  } catch(e){
+    return { date: todayKey(), count: 0 };
+  }
+}
+function setUsageData(data){
+  localStorage.setItem("btdt_free_usage", JSON.stringify(data));
+}
+function getFreePreviewsLeft(){
+  const data = getUsageData();
+  return Math.max(0, FREE_LIMIT_PER_DAY - data.count);
+}
+function incrementFreePreviewUsage(){
+  const data = getUsageData();
+  data.count = Math.min(FREE_LIMIT_PER_DAY, Number(data.count || 0) + 1);
+  setUsageData(data);
+  updateUsageUI();
+}
+function updateUsageUI(subscriptionActive = false){
+  const box = document.getElementById("usageBox");
+  const count = document.getElementById("usageCount");
+  if(!box || !count) return;
+  if(subscriptionActive){
+    box.innerHTML = 'Subscription active: <strong>generation limit bypassed</strong>';
+    return;
+  }
+  count.textContent = String(getFreePreviewsLeft());
+}
+
+
 function dropdownValue(id, fallback=""){
   const el = document.getElementById(id);
   return el ? el.value : fallback;
@@ -392,6 +436,7 @@ function setLockUI(unlocked, subActive){
   const merchBtn = document.getElementById("merchBtn");
   if(unlocked || subActive){
     lockState.innerHTML = '<span class="unlocked-badge">Unlocked</span>';
+    if(subActive){ updateUsageUI(true); }
     unlockBtn.style.display = "none";
     subscribeBtn.style.display = "none";
     downloadBtn.style.display = "";
@@ -423,6 +468,25 @@ async function generate(){
   currentEmail = currentEmail || "";
   const prompt = buildPrompt(rawPrompt);
 
+  // If no active subscription, enforce 3 free previews per day.
+  let subActive = false;
+  if(currentEmail){
+    try{
+      const statusRes = await fetch(`/api/unlock-status?image_id=${encodeURIComponent(currentImageId || "")}&email=${encodeURIComponent(currentEmail)}`);
+      if(statusRes.ok){
+        const statusData = await statusRes.json();
+        subActive = Boolean(statusData.subscription_active);
+      }
+    } catch(e){}
+  }
+
+  if(!subActive && getFreePreviewsLeft() <= 0){
+    document.getElementById("postActions").style.display = "block";
+    document.getElementById("lockState").innerHTML = '<span class="locked-badge">Free preview limit reached</span>';
+    showError("You’ve used your 3 free previews for today. Unlock an image or subscribe to keep going.");
+    return;
+  }
+
   startLoader();
 
   try{
@@ -452,6 +516,12 @@ async function generate(){
       img.src = "data:image/png;base64," + data.preview_b64;
       img.alt = "Generated tattoo preview";
       result.appendChild(img);
+
+      if(!Boolean(data.subscription_active)){
+        incrementFreePreviewUsage();
+      } else {
+        updateUsageUI(true);
+      }
 
       setLockUI(Boolean(data.unlocked), Boolean(data.subscription_active));
       if(data.subscription_active){
@@ -490,6 +560,11 @@ async function refreshUnlockStatus(){
   const data = await res.json();
   if(res.ok){
     setLockUI(Boolean(data.unlocked), Boolean(data.subscription_active));
+    if(Boolean(data.subscription_active)){
+      updateUsageUI(true);
+    } else {
+      updateUsageUI();
+    }
     if(params.get("checkout") === "success" && (data.unlocked || data.subscription_active)){
       showStatus("Payment confirmed. Your image is unlocked.");
       window.history.replaceState({}, "", window.location.pathname);
@@ -514,6 +589,7 @@ async function publishGallery(){
   showStatus("Image added to gallery.");
 }
 function merchNote(){ showStatus("Merch hooks are scaffolded in this package. Next step is connecting Printful for shirt/sticker checkout."); }
+updateUsageUI();
 refreshUnlockStatus();
 </script>
 </body>

@@ -32,17 +32,22 @@ export default async function handler(req, res) {
     const body = typeof req.body === "string" ? JSON.parse(req.body) : (req.body || {});
     const { prompt, email } = body;
 
-    if (!prompt || !String(prompt).trim()) return res.status(400).json({ error: "Prompt required" });
-    if (!email || !String(email).trim()) return res.status(400).json({ error: "Email required" });
+    if (!prompt || !String(prompt).trim()) {
+      return res.status(400).json({ error: "Prompt required" });
+    }
 
     const supabase = createClient();
-    const cleanEmail = String(email).trim().toLowerCase();
+    const cleanEmail = email && String(email).trim() ? String(email).trim().toLowerCase() : null;
 
-    const { data: sub } = await supabase
-      .from("subscribers")
-      .select("status,generations_used,generations_limit,period_end")
-      .eq("email", cleanEmail)
-      .maybeSingle();
+    let sub = null;
+    if (cleanEmail) {
+      const subRes = await supabase
+        .from("subscribers")
+        .select("status,generations_used,generations_limit,period_end")
+        .eq("email", cleanEmail)
+        .maybeSingle();
+      sub = subRes.data;
+    }
 
     const now = new Date();
     const subActive = !!sub && sub.status === "active" && sub.period_end && new Date(sub.period_end) > now;
@@ -65,7 +70,7 @@ export default async function handler(req, res) {
 
     if (error) throw error;
 
-    if (canUseSub) {
+    if (canUseSub && cleanEmail) {
       await supabase
         .from("subscribers")
         .update({ generations_used: (sub.generations_used || 0) + 1 })
