@@ -49,16 +49,10 @@ Recommended next step after this
 - Connect Printful so “Buy as T-shirt” and “Buy as Sticker” become real checkout flows
 
 
-Updated in this version:
-- expanded Tattoo Style options
-- expanded Placement options
-- expanded Size options
-
-
-Rebuilt full package note:
-This zip contains the full no-login paywall system with expanded Tattoo Style, Placement, and Size options in public/index.html.
-Replace the full Vercel project files from this package, then redeploy.
+This version was rebuilt from scratch for public/index.html with confirmed expanded options.
+Search this file for: Behind Ear, Back Piece, Pastel.
 
 
 Updated in this version:
-- expanded Color options confirmed in public/index.html
+- style, placement, size, and color changed to dropdown menus
+- optional inspo picture upload added to public/index.html

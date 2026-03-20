@@ -25,6 +25,11 @@ h1{margin:.15rem 0 .4rem;text-align:left;font-size:2rem;color:#111}
 .option-grid input{display:none}
 .option-grid label{display:block;width:100%;padding:.7rem .8rem;border:2px solid #cfb299;border-radius:14px;background:#fff;cursor:pointer;font-size:.92rem;font-weight:700;text-align:center}
 .option-grid input:checked + label{background:var(--accent);color:#fff;border-color:var(--accent)}
+.small{font-size:.85rem;opacity:.8}
+.select-field{width:100%;padding:12px 14px;border:2px solid var(--line);border-radius:14px;font-size:15px;background:#fffdfb;color:#3d1e0b}
+.upload-shell{border:2px dashed #cfb299;border-radius:16px;padding:.9rem;text-align:center;background:#fffdfb}
+.upload-shell input{display:block;margin:.65rem auto 0}
+.preview{margin:.75rem auto 0;max-width:220px;width:100%;border-radius:12px;display:none;box-shadow:0 8px 18px rgba(0,0,0,.12)}
 .prompt-shell{background:var(--card);border:2px solid var(--line);border-radius:20px;padding:1rem}
 .prompt-shell h2{margin:0 0 .75rem;font-size:1.2rem;color:#5a3118}
 textarea, input[type="email"]{width:100%;padding:14px;border:2px solid var(--line);border-radius:16px;font-size:16px;font-family:inherit;color:#3d1e0b;background:#fffdfb}
@@ -50,7 +55,6 @@ button{padding:14px 24px;border:none;border-radius:14px;cursor:pointer;font-size
 .locked-badge{background:#fff0cf;color:#6d4d00}
 .unlocked-badge{background:#e7fff1;color:#1d7f47}
 .action-row{display:flex;flex-wrap:wrap;gap:.75rem;justify-content:center;margin-top:1rem}
-.small{font-size:.85rem;opacity:.8}
 @media (max-width:980px){.shell{grid-template-columns:1fr}.left-panel{position:static}}
 @media (max-width:620px){.option-grid{grid-template-columns:1fr}.button-row button,.action-row button{width:100%}}
 </style>
@@ -60,7 +64,7 @@ button{padding:14px 24px;border:none;border-radius:14px;cursor:pointer;font-size
   <div class="shell">
     <aside class="panel left-panel">
       <h1>Generator + Unlocks</h1>
-      <p class="subhead">No-login version. Generate previews, unlock favorites, subscribe for 150 monthly generations, then download or publish to the gallery.</p>
+      <p class="subhead">No-login version with expanded style, placement, size, and color controls.</p>
 
       <div class="section">
         <h3>Email</h3>
@@ -80,24 +84,85 @@ button{padding:14px 24px;border:none;border-radius:14px;cursor:pointer;font-size
       <div class="section">
         <h3>Tattoo Style</h3>
         <div class="small" style="margin-bottom:.6rem;">Pick the closest vibe. The prompt will combine this with your idea.</div>
-        <div class="option-grid">
-          <input type="radio" name="style" id="s1" value="traditional" checked><label for="s1">Traditional</label>
-          <input type="radio" name="style" id="s2" value="neo traditional"><label for="s2">Neo Traditional</label>
-          <input type="radio" name="style" id="s3" value="Japanese"><label for="s3">Japanese</label>
-          <input type="radio" name="style" id="s4" value="blackwork"><label for="s4">Blackwork</label>
-          <input type="radio" name="style" id="s5" value="cartoony"><label for="s5">Cartoony</label>
-          <input type="radio" name="style" id="s6" value="fine line"><label for="s6">Fine Line</label>
-          <input type="radio" name="style" id="s7" value="illustrative"><label for="s7">Illustrative</label>
-          <input type="radio" name="style" id="s8" value="tribal"><label for="s8">Tribal</label>
-          <input type="radio" name="style" id="s9" value="realism"><label for="s9">Realism</label>
-          <input type="radio" name="style" id="s10" value="ignorant style"><label for="s10">Ignorant</label>
-          <input type="radio" name="style" id="s11" value="patchwork"><label for="s11">Patchwork</label>
-          <input type="radio" name="style" id="s12" value="bio-organic"><label for="s12">Bio-Organic</label>
-          <input type="radio" name="style" id="s13" value="surrealism"><label for="s13">Surreal</label>
-          <input type="radio" name="style" id="s14" value="chicano"><label for="s14">Chicano</label>
-          <input type="radio" name="style" id="s15" value="watercolor"><label for="s15">Watercolor</label>
-          <input type="radio" name="style" id="s16" value="dotwork"><label for="s16">Dotwork</label>
-        </div>
+        <select id="styleSelect" class="select-field">
+          <option value="traditional" selected>Traditional</option>
+          <option value="neo traditional">Neo Traditional</option>
+          <option value="Japanese">Japanese</option>
+          <option value="blackwork">Blackwork</option>
+          <option value="cartoony">Cartoony</option>
+          <option value="fine line">Fine Line</option>
+          <option value="illustrative">Illustrative</option>
+          <option value="tribal">Tribal</option>
+          <option value="realism">Realism</option>
+          <option value="ignorant style">Ignorant</option>
+          <option value="patchwork">Patchwork</option>
+          <option value="bio-organic">Bio-Organic</option>
+          <option value="surrealism">Surreal</option>
+          <option value="chicano">Chicano</option>
+          <option value="watercolor">Watercolor</option>
+          <option value="dotwork">Dotwork</option>
+        </select>
+      </div>
+
+      <div class="section">
+        <h3>Placement</h3>
+        <div class="small" style="margin-bottom:.6rem;">This helps composition and proportions feel more tattoo-ready.</div>
+        <select id="placementSelect" class="select-field">
+          <option value="arm" selected>Arm</option>
+          <option value="forearm">Forearm</option>
+          <option value="upper arm">Upper Arm</option>
+          <option value="wrist">Wrist</option>
+          <option value="hand">Hand</option>
+          <option value="fingers">Fingers</option>
+          <option value="thigh">Thigh</option>
+          <option value="calf">Calf</option>
+          <option value="shin">Shin</option>
+          <option value="ankle">Ankle</option>
+          <option value="knee">Knee</option>
+          <option value="chest">Chest</option>
+          <option value="sternum">Sternum</option>
+          <option value="stomach">Stomach</option>
+          <option value="back">Back</option>
+          <option value="shoulder blade">Shoulder Blade</option>
+          <option value="neck">Neck</option>
+          <option value="behind ear">Behind Ear</option>
+        </select>
+      </div>
+
+      <div class="section">
+        <h3>Size</h3>
+        <div class="small" style="margin-bottom:.6rem;">Choose scale so the design reads better for the body area.</div>
+        <select id="sizeSelect" class="select-field">
+          <option value="tiny" selected>Tiny</option>
+          <option value="small">Small</option>
+          <option value="medium">Medium</option>
+          <option value="large">Large</option>
+          <option value="palm size">Palm Size</option>
+          <option value="postcard size">Postcard</option>
+          <option value="quarter sleeve">Quarter Sleeve</option>
+          <option value="half sleeve">Half Sleeve</option>
+          <option value="full sleeve">Full Sleeve</option>
+          <option value="chest piece">Chest Piece</option>
+          <option value="back piece">Back Piece</option>
+          <option value="leg sleeve">Leg Sleeve</option>
+        </select>
+      </div>
+
+      <div class="section">
+        <h3>Color</h3>
+        <div class="small" style="margin-bottom:.6rem;">Choose how you want the design rendered.</div>
+        <select id="colorSelect" class="select-field">
+          <option value="black and grey" selected>Black & Grey</option>
+          <option value="full color">Full Color</option>
+          <option value="black ink only">Black Ink Only</option>
+          <option value="muted color palette">Muted Color</option>
+          <option value="red and black">Red & Black</option>
+          <option value="pastel color palette">Pastel</option>
+          <option value="high contrast vibrant color">Vibrant</option>
+          <option value="limited two-tone palette">Two-Tone</option>
+          <option value="no color with skin breaks">Skin Breaks</option>
+          <option value="sepia toned shading">Sepia</option>
+        </select>
       </div>
     </aside>
 
@@ -155,14 +220,43 @@ let progressInterval = null;
 let progress = 6;
 let currentImageId = null;
 let currentEmail = null;
+let inspoBase64 = null;
 
-function selected(name){
-  const el = document.querySelector('input[name="' + name + '"]:checked');
-  return el ? el.value : "";
+document.addEventListener("DOMContentLoaded", () => {
+  const fileInput = document.getElementById("inspoFile");
+  const preview = document.getElementById("inspoPreview");
+  if (fileInput) {
+    fileInput.addEventListener("change", (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) {
+        inspoBase64 = null;
+        preview.style.display = "none";
+        preview.src = "";
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        const result = evt.target.result || "";
+        const parts = String(result).split(",");
+        inspoBase64 = parts.length > 1 ? parts[1] : null;
+        preview.src = result;
+        preview.style.display = "block";
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+});
+
+function dropdownValue(id, fallback=""){
+  const el = document.getElementById(id);
+  return el ? el.value : fallback;
 }
 function buildPrompt(rawPrompt){
-  const outputType = selected("outputType");
-  const style = selected("style");
+  const outputType = document.querySelector('input[name="outputType"]:checked')?.value || "tattoo design";
+  const style = dropdownValue("styleSelect", "traditional");
+  const placement = dropdownValue("placementSelect", "arm");
+  const size = dropdownValue("sizeSelect", "tiny");
+  const color = dropdownValue("colorSelect", "black and grey");
   let outputText = "";
   if(outputType === "stencil"){
     outputText = "Output type: clean tattoo stencil, bold black linework, white background, no shading, no gradients, tattoo transfer-ready.";
@@ -171,27 +265,26 @@ function buildPrompt(rawPrompt){
   } else {
     outputText = "Output type: polished tattoo design concept.";
   }
-  return `${rawPrompt}. Tattoo style: ${style}. ${outputText}`;
+  return `${rawPrompt}. Tattoo style: ${style}. Placement: ${placement}. Size: ${size}. Color: ${color}. ${outputText}`;
 }
-function showError(msg){
-  const box = document.getElementById("errorBox");
-  box.textContent = msg; box.style.display = "block";
-}
+function showError(msg){ const box = document.getElementById("errorBox"); box.textContent = msg; box.style.display = "block"; }
 function hideError(){ const box = document.getElementById("errorBox"); box.textContent=""; box.style.display="none"; }
 function showStatus(msg){ const box = document.getElementById("statusBox"); box.textContent=msg; box.style.display="block"; }
 function hideStatus(){ const box = document.getElementById("statusBox"); box.textContent=""; box.style.display="none"; }
 function clearResult(){
-  document.getElementById("prompt").value = "";
-  document.getElementById("result").innerHTML = "";
-  document.getElementById("postActions").style.display = "none";
-  currentImageId = null;
-  hideError(); hideStatus();
+  document.getElementById("prompt").value="";
+  document.getElementById("result").innerHTML="";
+  document.getElementById("postActions").style.display="none";
+  currentImageId=null;
+  inspoBase64 = null;
+  const fileInput = document.getElementById("inspoFile");
+  const preview = document.getElementById("inspoPreview");
+  if (fileInput) fileInput.value = "";
+  if (preview) { preview.style.display = "none"; preview.src = ""; }
+  hideError();
+  hideStatus();
 }
-function updateFrame(i){
-  document.getElementById("cowFrame").src = frames[i];
-  document.getElementById("loadingText").textContent = captions[i].text;
-  document.getElementById("loadingSubtext").textContent = captions[i].sub;
-}
+function updateFrame(i){ document.getElementById("cowFrame").src = frames[i]; document.getElementById("loadingText").textContent = captions[i].text; document.getElementById("loadingSubtext").textContent = captions[i].sub; }
 function clearFrameTimers(){ frameTimers.forEach(t => clearTimeout(t)); frameTimers = []; }
 function totalSequenceTime(){ return stageDurations.reduce((a,b)=>a+b,0); }
 function startLoader(){
@@ -212,12 +305,7 @@ function startLoader(){
     document.getElementById("bar").style.width = progress + "%";
   }, 420);
 }
-function stopLoader(){
-  clearFrameTimers();
-  clearInterval(progressInterval);
-  document.getElementById("bar").style.width = "100%";
-  setTimeout(() => { document.getElementById("loader").style.display = "none"; }, 180);
-}
+function stopLoader(){ clearFrameTimers(); clearInterval(progressInterval); document.getElementById("bar").style.width="100%"; setTimeout(() => { document.getElementById("loader").style.display="none"; }, 180); }
 function setLockUI(unlocked, subActive){
   document.getElementById("postActions").style.display = "block";
   const lockState = document.getElementById("lockState");
@@ -226,7 +314,6 @@ function setLockUI(unlocked, subActive){
   const downloadBtn = document.getElementById("downloadBtn");
   const publishBtn = document.getElementById("publishBtn");
   const merchBtn = document.getElementById("merchBtn");
-
   if(unlocked || subActive){
     lockState.innerHTML = '<span class="unlocked-badge">Unlocked</span>';
     unlockBtn.style.display = "none";
@@ -251,27 +338,19 @@ async function generate(){
   hideError(); hideStatus();
   if(!rawPrompt){ showError("Please enter a tattoo idea."); return; }
   if(!email){ showError("Please enter your email first."); return; }
-
   currentEmail = email;
   const prompt = buildPrompt(rawPrompt);
   startLoader();
-
   try{
     const minLoader = new Promise(resolve => setTimeout(resolve, totalSequenceTime() + 150));
     const req = fetch("/api/generate",{
       method:"POST",
       headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({ prompt, email })
+      body:JSON.stringify({ prompt, email, reference_image: inspoBase64 })
     }).then(async (res) => ({ ok:res.ok, status:res.status, data: await res.json() }));
-
     const [{ ok, status, data }] = await Promise.all([req, minLoader]);
     stopLoader();
-
-    if(!ok){
-      showError("API error " + status + ": " + (data.error || JSON.stringify(data)));
-      return;
-    }
-
+    if(!ok){ showError("API error " + status + ": " + (data.error || JSON.stringify(data))); return; }
     if(data.preview_b64 && data.image_id){
       currentImageId = data.image_id;
       localStorage.setItem("btdt_last_image_id", currentImageId);
@@ -281,38 +360,24 @@ async function generate(){
       img.alt = "Generated tattoo preview";
       result.appendChild(img);
       setLockUI(Boolean(data.unlocked), Boolean(data.subscription_active));
-      if(data.subscription_active){
-        showStatus("Subscription active. This image is already unlocked.");
-      }
+      if(data.subscription_active){ showStatus("Subscription active. This image is already unlocked."); }
       return;
     }
-
     showError("Generation finished, but no preview was returned.");
-  } catch(e){
-    stopLoader();
-    showError("Request failed: " + (e && e.message ? e.message : String(e)));
-  }
+  } catch(e){ stopLoader(); showError("Request failed: " + (e && e.message ? e.message : String(e))); }
 }
 async function startCheckout(mode){
   hideError(); hideStatus();
   const email = document.getElementById("email").value.trim().toLowerCase();
   if(!email){ showError("Please enter your email first."); return; }
   currentEmail = email;
-  if(mode === "unlock" && !currentImageId){
-    showError("Generate an image first.");
-    return;
-  }
-
+  if(mode === "unlock" && !currentImageId){ showError("Generate an image first."); return; }
   const res = await fetch("/api/create-checkout", {
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
+    method:"POST", headers:{"Content-Type":"application/json"},
     body:JSON.stringify({ mode, email, image_id: currentImageId })
   });
   const data = await res.json();
-  if(!res.ok || !data.url){
-    showError("Checkout error: " + (data.error || "No checkout URL returned."));
-    return;
-  }
+  if(!res.ok || !data.url){ showError("Checkout error: " + (data.error || "No checkout URL returned.")); return; }
   window.location.href = data.url;
 }
 async function refreshUnlockStatus(){
@@ -320,11 +385,7 @@ async function refreshUnlockStatus(){
   const imageId = params.get("image_id") || localStorage.getItem("btdt_last_image_id");
   const email = params.get("email") || localStorage.getItem("btdt_last_email");
   if(!imageId || !email) return;
-
-  currentImageId = imageId;
-  currentEmail = email;
-  document.getElementById("email").value = email;
-
+  currentImageId = imageId; currentEmail = email; document.getElementById("email").value = email;
   const res = await fetch(`/api/unlock-status?image_id=${encodeURIComponent(imageId)}&email=${encodeURIComponent(email)}`);
   const data = await res.json();
   if(res.ok){
@@ -343,24 +404,16 @@ async function downloadUnlocked(){
   const a = document.createElement("a");
   a.href = "data:image/png;base64," + data.image_b64;
   a.download = `${currentImageId}.png`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
+  document.body.appendChild(a); a.click(); a.remove();
 }
 async function publishGallery(){
   if(!currentImageId || !currentEmail){ showError("Missing image or email."); return; }
-  const res = await fetch("/api/gallery-publish",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({ image_id: currentImageId, email: currentEmail })
-  });
+  const res = await fetch("/api/gallery-publish",{ method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ image_id: currentImageId, email: currentEmail }) });
   const data = await res.json();
   if(!res.ok){ showError(data.error || "Publish failed."); return; }
   showStatus("Image added to gallery.");
 }
-function merchNote(){
-  showStatus("Merch hooks are scaffolded in this package. Next step is connecting Printful for shirt/sticker checkout.");
-}
+function merchNote(){ showStatus("Merch hooks are scaffolded in this package. Next step is connecting Printful for shirt/sticker checkout."); }
 refreshUnlockStatus();
 </script>
 </body>
