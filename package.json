@@ -1,8 +1,8 @@
 {
-  "name": "btdt-paywall-enhanced",
+  "name": "btdt-generator-backend-placement-fix",
   "private": true,
-  "type": "module",
+  "version": "1.0.0",
   "dependencies": {
-    "stripe": "^16.8.0"
+    "openai": "^4.104.0"
   }
 }
