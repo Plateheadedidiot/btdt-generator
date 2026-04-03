@@ -4,6 +4,12 @@ const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+function setCors(res) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+}
+
 function buildPlacementRules(placement, scriptText = "", flowShape = "") {
   const lower = String(placement || "").toLowerCase();
   const cleanedScript = String(scriptText || "").trim();
@@ -93,12 +99,8 @@ function buildPrompt(input) {
     parts.push(exactTextRule(input.scriptText));
     parts.push(`Font style: ${input.fontStyle}.`);
     parts.push(`Flow or layout request: ${input.flowShape}.`);
-    if (input.secondLine) {
-      parts.push(`Add a second line using the EXACT text "${input.secondLine}". Do not alter it.`);
-    }
-    if (input.emphasisWord) {
-      parts.push(`Emphasize this word exactly as written: "${input.emphasisWord}".`);
-    }
+    if (input.secondLine) parts.push(`Add a second line using the EXACT text "${input.secondLine}". Do not alter it.`);
+    if (input.emphasisWord) parts.push(`Emphasize this word exactly as written: "${input.emphasisWord}".`);
     parts.push("Keep the lettering clean, readable, centered, and believable as an actual tattoo.");
   }
 
@@ -108,12 +110,8 @@ function buildPrompt(input) {
     parts.push(exactTextRule(input.scriptText));
     parts.push(`Font style: ${input.fontStyle}.`);
     parts.push(`Flow or layout request: ${input.flowShape}.`);
-    if (input.secondLine) {
-      parts.push(`Add a second line using the EXACT text "${input.secondLine}". Do not alter it.`);
-    }
-    if (input.emphasisWord) {
-      parts.push(`Emphasize this word exactly as written: "${input.emphasisWord}".`);
-    }
+    if (input.secondLine) parts.push(`Add a second line using the EXACT text "${input.secondLine}". Do not alter it.`);
+    if (input.emphasisWord) parts.push(`Emphasize this word exactly as written: "${input.emphasisWord}".`);
     parts.push("The design and lettering must feel unified and intentional, not pasted together.");
   }
 
@@ -139,6 +137,12 @@ function normalize(body = {}) {
 }
 
 export default async function handler(req, res) {
+  setCors(res);
+
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
@@ -156,9 +160,6 @@ export default async function handler(req, res) {
 
     const prompt = buildPrompt(input);
 
-    // Fast path: generate a single image using the Image API.
-    // Reference image is accepted by the frontend, but ignored here until a stable
-    // image-edit flow is implemented. That keeps generation reliable and fast.
     const result = await client.images.generate({
       model: "gpt-image-1",
       prompt,
@@ -169,16 +170,13 @@ export default async function handler(req, res) {
     const image = result?.data?.[0]?.b64_json;
 
     if (!image) {
-      return res.status(500).json({
-        error: "No image returned from OpenAI",
-      });
+      return res.status(500).json({ error: "No image returned from OpenAI" });
     }
 
     return res.status(200).json({
       image,
       prompt_used: prompt,
-      reference_ignored: Boolean(input.reference_image),
-      speed_mode: "medium"
+      reference_ignored: Boolean(input.reference_image)
     });
   } catch (err) {
     console.error("GEN ERROR:", err);

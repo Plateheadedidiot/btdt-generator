@@ -1,5 +1,5 @@
 {
-  "name": "btdt-generator-api",
+  "name": "btdt-generator-api-cors-fix",
   "private": true,
   "version": "1.0.0",
   "type": "module",

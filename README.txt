@@ -1,37 +1,16 @@
-Fresh Vercel API replacement for the current frontend.
+This version adds CORS headers so your website can call the Vercel API.
 
-Files:
-- api/generate.js
-- package.json
-- .env.example
+Why this likely fixes "Load failed":
+- The API could work when opened directly on Vercel
+- but fail from your website because cross-origin browser requests need CORS headers
 
 What changed:
-- Matches the current frontend payload fields
-- Stronger knuckle/finger placement rules
-- Exact text enforcement for script
-- Faster generation by using:
-  - OpenAI Images API
-  - quality: "medium"
-  - single-image flow
-- Keeps reference_image accepted from frontend but ignores it for now, so uploads won't break generation
+- Access-Control-Allow-Origin: *
+- Access-Control-Allow-Methods: POST, OPTIONS
+- Access-Control-Allow-Headers: Content-Type
+- OPTIONS preflight handler added
 
-How to use:
-1. Replace your current Vercel api/generate.js with this file.
-2. Ensure package.json in the Vercel project includes "type": "module" and the openai dependency.
-3. Add OPENAI_API_KEY in Vercel environment variables.
-4. Redeploy.
-
-Expected request body:
-- mode
-- prompt
-- scriptText
-- secondLine
-- emphasisWord
-- style
-- placement
-- size
-- color
-- fontStyle
-- flowShape
-- bodyMockup
-- reference_image
+Keep:
+- exact text enforcement
+- stronger finger/knuckle placement
+- faster Image API generation
