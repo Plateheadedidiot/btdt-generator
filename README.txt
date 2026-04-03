@@ -1,16 +1,14 @@
-This version adds CORS headers so your website can call the Vercel API.
+Paywall owner-access backend add-on.
 
-Why this likely fixes "Load failed":
-- The API could work when opened directly on Vercel
-- but fail from your website because cross-origin browser requests need CORS headers
+Add this file to your existing Vercel project:
+- api/owner-login.js
 
-What changed:
-- Access-Control-Allow-Origin: *
-- Access-Control-Allow-Methods: POST, OPTIONS
-- Access-Control-Allow-Headers: Content-Type
-- OPTIONS preflight handler added
+Set these environment variables in Vercel:
+- OWNER_EMAIL=beentheredonetat@gmail.com
+- OWNER_PASSWORD=Cucumber1211$
 
-Keep:
-- exact text enforcement
-- stronger finger/knuckle placement
-- faster Image API generation
+Important:
+- This keeps the password out of the frontend code.
+- The frontend uses this endpoint to unlock unlimited generations for the owner in this browser.
+- This is a UI/session bypass for you as owner.
+- Real customer paywall enforcement still needs Stripe + server-side entitlement checks.
