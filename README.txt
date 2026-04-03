@@ -1,15 +1,20 @@
-Replace your current Vercel /api/generate.js with this file.
+Vercel backend replacement
 
-Why this version is safer:
-- Uses the Image API for single-image generation, which OpenAI recommends when you only need one image from one prompt.
-- Uses ESM default export, which matches Vercel's recommended function style.
-- Keeps your placement logic and exact-text enforcement.
-- Ignores reference_image for now instead of crashing.
+Files:
+- api/generate.js
+- package.json
+- .env.example
 
-Important:
-- Add OPENAI_API_KEY in Vercel env vars.
-- Redeploy after replacing the file.
-- Your frontend should point to https://btdt-generator-4tts.vercel.app/api/generate
+What to do:
+1. Replace your existing Vercel api/generate.js with this file.
+2. Make sure package.json in your Vercel project includes:
+   - "type": "module"
+   - "openai"
+3. Add OPENAI_API_KEY in Vercel environment variables.
+4. Redeploy.
 
-Note:
-- Reference image uploads are temporarily ignored in this version. This is intentional so generation works reliably first.
+This version:
+- uses a simple Image API call
+- supports design / script / design+script
+- enforces exact script text
+- adds extra finger/knuckle handling
