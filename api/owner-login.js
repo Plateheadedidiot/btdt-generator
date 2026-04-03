@@ -11,25 +11,14 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  try {
-    const { email, password } = req.body || {};
-    const ownerEmail = process.env.OWNER_EMAIL || "";
-    const ownerPassword = process.env.OWNER_PASSWORD || "";
+  const { email, password } = req.body || {};
 
-    if (!ownerEmail || !ownerPassword) {
-      return res.status(500).json({ error: "Owner access is not configured on the server." });
-    }
-
-    if (String(email || "").trim().toLowerCase() !== ownerEmail.trim().toLowerCase()) {
-      return res.status(401).json({ error: "Owner email not recognized." });
-    }
-
-    if (String(password || "") !== ownerPassword) {
-      return res.status(401).json({ error: "Incorrect owner password." });
-    }
-
+  if (
+    email === process.env.OWNER_EMAIL &&
+    password === process.env.OWNER_PASSWORD
+  ) {
     return res.status(200).json({ ok: true });
-  } catch (err) {
-    return res.status(500).json({ error: err?.message || "Owner login failed." });
   }
+
+  return res.status(401).json({ ok: false, error: "Invalid credentials" });
 }

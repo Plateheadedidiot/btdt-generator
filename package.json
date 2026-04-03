@@ -1,9 +1,6 @@
 {
-  "name": "btdt-generator-api-cors-fix",
+  "name": "btdt-owner-login-backend",
   "private": true,
   "version": "1.0.0",
-  "type": "module",
-  "dependencies": {
-    "openai": "^4.104.0"
-  }
+  "type": "module"
 }
