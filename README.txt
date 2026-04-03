@@ -1,49 +1,15 @@
-BTDT backend placement fix
+Replace your current Vercel /api/generate.js with this file.
 
-This package is a full replacement backend for your Vercel generator route.
+Why this version is safer:
+- Uses the Image API for single-image generation, which OpenAI recommends when you only need one image from one prompt.
+- Uses ESM default export, which matches Vercel's recommended function style.
+- Keeps your placement logic and exact-text enforcement.
+- Ignores reference_image for now instead of crashing.
 
-Files included:
-- api/generate.js
-- package.json
-- .env.example
-- README.txt
+Important:
+- Add OPENAI_API_KEY in Vercel env vars.
+- Redeploy after replacing the file.
+- Your frontend should point to https://btdt-generator-4tts.vercel.app/api/generate
 
-What this backend improves:
-- placement-specific logic for all supported body parts
-- much stronger finger / knuckle rules
-- exact-text enforcement for script tattoos
-- unified prompt building for:
-  - design
-  - script
-  - design + script
-- optional reference image support if the frontend sends reference_image as base64
-
-How to install on Vercel:
-1. In your existing Vercel project, replace your current /api/generate file with api/generate.js from this package.
-2. Make sure package.json includes the openai dependency.
-3. Add OPENAI_API_KEY in your Vercel environment variables.
-4. Redeploy.
-
-Expected frontend body fields:
-- mode: design | script | design_script
-- prompt
-- scriptText
-- secondLine
-- emphasisWord
-- style
-- placement
-- size
-- color
-- fontStyle
-- flowShape
-- bodyMockup
-- reference_image
-
-Notes:
-- This is written as a CommonJS Vercel serverless function.
-- If your current project uses ESM instead, convert require/module.exports to import/export default.
-- The route returns:
-  {
-    image: "<base64 png>",
-    prompt_used: "<full final prompt>"
-  }
+Note:
+- Reference image uploads are temporarily ignored in this version. This is intentional so generation works reliably first.

@@ -1,7 +1,8 @@
 {
-  "name": "btdt-generator-backend-placement-fix",
+  "name": "btdt-backend-working-pair",
   "private": true,
   "version": "1.0.0",
+  "type": "module",
   "dependencies": {
     "openai": "^4.104.0"
   }
