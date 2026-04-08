@@ -1,6 +1,9 @@
 {
-  "name": "btdt-owner-login-backend",
+  "name": "btdt-stripe-endpoints",
   "private": true,
   "version": "1.0.0",
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "stripe": "^16.10.0"
+  }
 }
