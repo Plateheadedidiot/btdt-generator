@@ -9,7 +9,7 @@ export const config = {
    🔐 HARDCODED KEYS
 ========================= */
 
-const OPENAI_API_KEY = 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
+const OPENAI_API_KEY = sk-proj-REPLACE_WITH_YOUR_KEY
 const STRIPE_SECRET_KEY = sk_test_51TCnzSBUHTFhWUqxldvjBaduRf2CBUc1cZDJZLMF6CwxttaNnswEQWMxgUNgBTmtvLVV85wLvtNAg01PmOqona2l00zyU5KpvH
 const STRIPE_WEBHOOK_SECRET = whsec_ZWC5WSlRPsto5nymASBcyoldrO4cGfVx
 const STRIPE_UNLOCK_PRICE_ID = price_1TCo7VBUHTFhWUqxGsVwYNpX
