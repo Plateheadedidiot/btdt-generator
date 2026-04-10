@@ -24,7 +24,9 @@ function send(res, code, data) {
 
 async function readBody(req) {
   const chunks = [];
-  for await (const c of req) chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c));
+  for await (const c of req) {
+    chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c));
+  }
   return Buffer.concat(chunks).toString();
 }
 
@@ -44,12 +46,197 @@ function inferAction(body = {}) {
   return "generate";
 }
 
+function clean(value, fallback = "") {
+  return String(value ?? fallback).trim();
+}
+
+function placementRule(placement, scriptText = "", flowShape = "", bodyMockup = true) {
+  const p = clean(placement).toLowerCase();
+  const count = clean(scriptText).replace(/\s+/g, "").length;
+
+  if (p === "knuckles" || p === "fingers") {
+    let splitRule = "Use true segmented finger placement with one character per segment when possible.";
+    if (count === 4) splitRule = "Place exactly one character on each finger or knuckle across one hand.";
+    if (count === 8) splitRule = "Split the text evenly across both hands with exactly one character per finger or knuckle.";
+    if (count > 0 && count !== 4 && count !== 8) {
+      splitRule = `The text has ${count} characters. Distribute it naturally across finger or knuckle segments while keeping each character clearly isolated and believable.`;
+    }
+
+    return [
+      "Do not treat this like standard straight-line typography.",
+      splitRule,
+      "Keep each character centered, separate, bold, readable, and realistically sized for actual finger or knuckle tattooing.",
+      "Avoid long connected cursive across multiple fingers unless explicitly required by the prompt.",
+      String(flowShape).toLowerCase() === "straight line"
+        ? "Interpret straight line as segmented finger layout, not one connected line."
+        : "Only honor the requested flow if it still looks anatomically believable.",
+      bodyMockup
+        ? "If showing the body, the hand angle must make the finger or knuckle placement clearly readable."
+        : "If not showing the body, still compose the text as a true segmented finger or knuckle tattoo."
+    ].join(" ");
+  }
+
+  const rules = {
+    arm: "Fit the composition naturally to the outer arm with believable flow and real tattoo spacing.",
+    forearm: "Use a vertical composition that reads naturally down the forearm and fits the narrow limb cleanly.",
+    "upper arm": "Curve or shape the design slightly to suit the rounded upper arm rather than a flat poster layout.",
+    wrist: "Keep the design compact, simplified, and realistically scaled for a small wrist area.",
+    hand: "Fit the tattoo naturally to the hand with bold readability and realistic scale for that compact surface.",
+    thigh: "Use a larger, open composition that suits the broad flat thigh and does not feel tiny or cramped.",
+    calf: "Compose vertically or with a gentle natural curve so it fits the calf cleanly.",
+    shin: "Center the design vertically on the shin with strong readability for the narrow front-of-leg placement.",
+    ankle: "Keep the design small and naturally fitted to the ankle, with believable wrap or contour if needed.",
+    knee: "Build the design around the round knee shape so it feels intentional on a joint rather than flat or pasted on.",
+    chest: "Use a wider composition that suits the chest and follows natural torso flow.",
+    sternum: "Use a narrow centered vertical composition that follows the body centerline cleanly.",
+    stomach: "Shape the design naturally for the stomach area with believable scale and spacing.",
+    back: "Allow a larger composition with breathing room so it feels natural on the back.",
+    "shoulder blade": "Angle or curve the design to fit the shoulder blade instead of letting it sit flat and awkward.",
+    neck: "Keep the design compact and elegantly scaled for the neck with believable orientation.",
+    "behind ear": "Keep the tattoo very small, subtle, and precisely placed behind the ear with realistic scale.",
+  };
+
+  return rules[p] || "Place the tattoo in a body-aware, anatomically believable way with realistic scale and orientation.";
+}
+
+function buildQualityRules(input) {
+  const lowerStyle = clean(input.style).toLowerCase();
+  const lowerColor = clean(input.color).toLowerCase();
+
+  const rules = [
+    "Create a tattoo-ready image, not a poster, painting, or graphic design mockup.",
+    "Prioritize tattoo stencil logic, tattooability, and strong tattoo composition.",
+    "Use clean bold linework, readable shapes, intentional negative space, crisp edges, and strong silhouette.",
+    "Favor print-ready tattoo stencil sensibility over decorative illustration sensibility.",
+    "Prioritize bold outlines, simplified shadow masses, and readable tattoo composition over realism or painterly finish.",
+    "Avoid blur, muddy rendering, soft painterly shading, noisy tiny details, fake paper texture, poster layouts, and overdesigned mockup framing.",
+    "The result should feel suitable for an actual tattoo artist to refine, stencil, or place.",
+  ];
+
+  if (input.bodyMockup) {
+    rules.push("This must look like a believable tattoo placement preview on a real body area, not a floating sticker on skin.");
+    rules.push("Respect realistic angle, scale, body curvature, natural body flow, and believable tattoo positioning.");
+    rules.push("Show enough of the relevant body part to make the placement obvious.");
+  } else {
+    rules.push("Show the design cleanly on a plain light background while still composing it specifically for the selected body placement.");
+  }
+
+  if (
+    lowerColor.includes("black") ||
+    lowerColor.includes("grey") ||
+    lowerColor.includes("sepia") ||
+    lowerColor.includes("ink only")
+  ) {
+    rules.push("Favor strong black shapes, high contrast, clear stencil readability, and simplified tattoo-ready detail.");
+  } else {
+    rules.push("Use color like a tattoo artist would: bold, intentional color grouping with tattoo-style readability, not muddy painterly blending.");
+  }
+
+  if (lowerStyle.includes("fine line")) {
+    rules.push("Keep the lines delicate but still tattooable and readable. Avoid hairline detail that would disappear in a real tattoo.");
+  }
+
+  if (lowerStyle.includes("traditional") || lowerStyle.includes("neo traditional")) {
+    rules.push("Use classic tattoo readability, strong line hierarchy, simplified color blocking, and durable tattoo composition.");
+  }
+
+  if (lowerStyle.includes("japanese")) {
+    rules.push("Keep the flow body-aware and compositionally intentional, with bold readable masses and strong tattoo rhythm.");
+  }
+
+  if (lowerStyle.includes("realism")) {
+    rules.push("Keep realism tattoo-friendly. Preserve strong silhouette and readability instead of photographic noise.");
+  }
+
+  if (
+    lowerStyle.includes("cartoony") ||
+    lowerStyle.includes("illustrative") ||
+    lowerStyle.includes("surreal") ||
+    lowerStyle.includes("surrealism")
+  ) {
+    rules.push("Keep the shapes graphic, bold, and tattooable rather than soft or painterly.");
+  }
+
+  if (input.mode === "script" || input.mode === "design_script") {
+    rules.push("Lettering must remain sharp, readable, centered, and convincingly tattooable.");
+  }
+
+  return rules.join(" ");
+}
+
+function buildPrompt(input) {
+  const parts = [
+    "Create a tattoo-ready image.",
+    `Placement: ${input.placement}.`,
+    `Placement guidance: ${placementRule(input.placement, input.scriptText, input.flowShape, input.bodyMockup)}`,
+    `Size: ${input.size}.`,
+    `Color: ${input.color}.`,
+    `Quality rules: ${buildQualityRules(input)}`
+  ];
+
+  if (input.mode === "design") {
+    parts.push(`Tattoo style: ${input.style}.`);
+    parts.push(`Design idea: ${input.prompt}.`);
+    parts.push("Make the final result clean, readable, body-aware, and suitable for tattoo translation.");
+  } else if (input.mode === "script") {
+    parts.push(`Use the EXACT text "${input.scriptText}". Do not change spelling, wording, capitalization, punctuation, grammar, or spacing.`);
+    parts.push(`Font style: ${input.fontStyle}.`);
+    parts.push(`Flow layout: ${input.flowShape}.`);
+    if (input.secondLine) {
+      parts.push(`Add a second line using the EXACT text "${input.secondLine}". Do not alter it.`);
+    }
+    if (input.emphasisWord) {
+      parts.push(`Emphasize the EXACT word "${input.emphasisWord}".`);
+    }
+    parts.push("Keep the lettering clean, readable, tattooable, and accurately placed for the selected body part.");
+  } else {
+    parts.push(`Tattoo style: ${input.style}.`);
+    parts.push(`Design idea: ${input.prompt}.`);
+    parts.push(`Add script using the EXACT text "${input.scriptText}". Do not change spelling, wording, capitalization, punctuation, grammar, or spacing.`);
+    parts.push(`Font style: ${input.fontStyle}.`);
+    parts.push(`Flow layout: ${input.flowShape}.`);
+    if (input.secondLine) {
+      parts.push(`Add a second line using the EXACT text "${input.secondLine}". Do not alter it.`);
+    }
+    if (input.emphasisWord) {
+      parts.push(`Emphasize the EXACT word "${input.emphasisWord}".`);
+    }
+    parts.push("The design and lettering must feel unified, intentional, tattoo-ready, and anatomically believable.");
+  }
+
+  if (input.reference_image) {
+    parts.push("Use the supplied reference image only as inspiration for composition, mood, or elements when relevant, while still obeying all tattoo-readiness and body-placement rules.");
+  }
+
+  return parts.join(" ");
+}
+
 async function handleGenerate(res, body) {
-  if (!body.prompt && !body.scriptText) {
+  const input = {
+    mode: body.mode || "design",
+    prompt: clean(body.prompt),
+    scriptText: clean(body.scriptText),
+    secondLine: clean(body.secondLine),
+    emphasisWord: clean(body.emphasisWord),
+    style: clean(body.style, "traditional"),
+    placement: clean(body.placement, "forearm"),
+    size: clean(body.size, "medium"),
+    color: clean(body.color, "black and grey"),
+    fontStyle: clean(body.fontStyle, "fine line cursive"),
+    flowShape: clean(body.flowShape, "straight line"),
+    bodyMockup: !!body.bodyMockup,
+    reference_image: body.reference_image || null,
+  };
+
+  if ((input.mode === "design" || input.mode === "design_script") && !input.prompt) {
     return send(res, 400, { error: "Missing design prompt" });
   }
 
-  const prompt = body.prompt || body.scriptText;
+  if ((input.mode === "script" || input.mode === "design_script") && !input.scriptText) {
+    return send(res, 400, { error: "Missing script text" });
+  }
+
+  const prompt = buildPrompt(input);
 
   const img = await client.images.generate({
     model: "gpt-image-1",
@@ -63,7 +250,10 @@ async function handleGenerate(res, body) {
     return send(res, 500, { error: "No image returned from OpenAI" });
   }
 
-  return send(res, 200, { image });
+  return send(res, 200, {
+    image,
+    prompt_used: prompt,
+  });
 }
 
 async function stripeFetch(path, method = "POST", form = null) {
@@ -95,7 +285,7 @@ async function stripeFetch(path, method = "POST", form = null) {
 }
 
 async function handleCheckout(res, body) {
-  const rawMode = String(body.checkoutMode || "").toLowerCase();
+  const rawMode = clean(body.checkoutMode).toLowerCase();
   const mode = rawMode === "subscription" ? "subscription" : "payment";
 
   const price =
