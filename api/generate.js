@@ -9,11 +9,11 @@ export const config = {
    🔐 HARDCODED KEYS
 ========================= */
 
-const OPENAI_API_KEY = sk-proj-REPLACE_WITH_YOUR_KEY
-const STRIPE_SECRET_KEY = sk_test_51TCnzSBUHTFhWUqxldvjBaduRf2CBUc1cZDJZLMF6CwxttaNnswEQWMxgUNgBTmtvLVV85wLvtNAg01PmOqona2l00zyU5KpvH
-const STRIPE_WEBHOOK_SECRET = whsec_ZWC5WSlRPsto5nymASBcyoldrO4cGfVx
-const STRIPE_UNLOCK_PRICE_ID = price_1TCo7VBUHTFhWUqxGsVwYNpX
-const STRIPE_SUBSCRIPTION_PRICE_ID = price_1TCo8kBUHTFhWUqxtJhaCIfH
+const OPENAI_API_KEY = process.env.OPENAI_API_KEYconst 
+const STRIPE_SECRET_KEY = "sk_test_51TCnzSBUHTFhWUqxldvjBaduRf2CBUc1cZDJZLMF6CwxttaNnswEQWMxgUNgBTmtvLVV85wLvtNAg01PmOqona2l00zyU5KpvH"
+const STRIPE_WEBHOOK_SECRET = "whsec_ZWC5WSlRPsto5nymASBcyoldrO4cGfVx"
+const STRIPE_UNLOCK_PRICE_ID = "price_1TCo7VBUHTFhWUqxGsVwYNpX"
+const STRIPE_SUBSCRIPTION_PRICE_ID = "price_1TCo8kBUHTFhWUqxtJhaCIfH"
 const PUBLIC_APP_URL = "https://beentheredonetat.com";
 
 /* ========================= */
