@@ -63,10 +63,10 @@ function placementRule(placement, scriptText = "", flowShape = "", bodyMockup = 
     }
 
     return [
-      "Do not treat this like standard straight-line typography.",
+      "Do not treat this like normal straight-line typography.",
       splitRule,
       "Keep each character centered, separate, bold, readable, and realistically sized for actual finger or knuckle tattooing.",
-      "Avoid long connected cursive across multiple fingers unless explicitly required by the prompt.",
+      "Avoid long connected cursive across multiple fingers unless explicitly required.",
       String(flowShape).toLowerCase() === "straight line"
         ? "Interpret straight line as segmented finger layout, not one connected line."
         : "Only honor the requested flow if it still looks anatomically believable.",
@@ -110,13 +110,17 @@ function buildQualityRules(input) {
     "Favor print-ready tattoo stencil sensibility over decorative illustration sensibility.",
     "Prioritize bold outlines, simplified shadow masses, and readable tattoo composition over realism or painterly finish.",
     "Avoid blur, muddy rendering, soft painterly shading, noisy tiny details, fake paper texture, poster layouts, and overdesigned mockup framing.",
-    "The result should feel suitable for an actual tattoo artist to refine, stencil, or place.",
+    "The result should feel suitable for an actual tattoo artist to refine, stencil, or place."
   ];
 
   if (input.bodyMockup) {
     rules.push("This must look like a believable tattoo placement preview on a real body area, not a floating sticker on skin.");
     rules.push("Respect realistic angle, scale, body curvature, natural body flow, and believable tattoo positioning.");
     rules.push("Show enough of the relevant body part to make the placement obvious.");
+    rules.push("The tattoo must appear truly placed on the selected body part, not floating, pasted on, or positioned generically.");
+    rules.push("Body placement accuracy is critical. Respect the natural angle, curvature, scale, and orientation of the selected body part.");
+    rules.push("If the selected placement is small, keep the tattoo realistically small.");
+    rules.push("If the selected placement is forearm, shin, sternum, behind ear, fingers, knuckles, wrist, or neck, prioritize exact placement realism over creativity.");
   } else {
     rules.push("Show the design cleanly on a plain light background while still composing it specifically for the selected body placement.");
   }
@@ -176,7 +180,7 @@ function buildPrompt(input) {
 
   if (input.mode === "design") {
     parts.push(`Tattoo style: ${input.style}.`);
-    parts.push(`Design idea: ${input.prompt}.`);
+    if (input.prompt) parts.push(`Design idea: ${input.prompt}.`);
     parts.push("Make the final result clean, readable, body-aware, and suitable for tattoo translation.");
   } else if (input.mode === "script") {
     parts.push(`Use the EXACT text "${input.scriptText}". Do not change spelling, wording, capitalization, punctuation, grammar, or spacing.`);
@@ -191,7 +195,7 @@ function buildPrompt(input) {
     parts.push("Keep the lettering clean, readable, tattooable, and accurately placed for the selected body part.");
   } else {
     parts.push(`Tattoo style: ${input.style}.`);
-    parts.push(`Design idea: ${input.prompt}.`);
+    if (input.prompt) parts.push(`Design idea: ${input.prompt}.`);
     parts.push(`Add script using the EXACT text "${input.scriptText}". Do not change spelling, wording, capitalization, punctuation, grammar, or spacing.`);
     parts.push(`Font style: ${input.fontStyle}.`);
     parts.push(`Flow layout: ${input.flowShape}.`);
@@ -206,20 +210,20 @@ function buildPrompt(input) {
 
   if (input.reference_image) {
     if (input.convertReference) {
-      parts.push("Convert the uploaded inspiration image into a tattoo-ready design.");
-      parts.push("Preserve the major composition, subject, pose, and recognizable structure from the uploaded image.");
-      parts.push("Simplify or adapt the image into bold, tattooable linework, strong shapes, readable negative space, and stencil-friendly design logic.");
-      parts.push("Do not make it a photo edit. Reinterpret it as a tattoo design while staying faithful to the source image.");
+      parts.push("Convert the uploaded inspiration image into a tattoo-ready version of the SAME core design.");
+      parts.push("Preserve the original composition, pose, silhouette, structure, and subject arrangement as closely as possible.");
+      parts.push("Do not creatively redesign the image unless necessary for tattoo readability.");
+      parts.push("Only simplify details, strengthen linework, improve contrast, and adapt the image to make it tattooable and stencil-friendly.");
+      parts.push("Keep the final design visually very close to the uploaded image.");
+      parts.push("Do not drift into a different concept, different pose, different composition, or different design language.");
     } else if (input.strictReference) {
-      parts.push("Match the uploaded inspiration image as closely as possible.");
-      parts.push("Preserve composition, pose, structure, silhouette, and layout.");
-      parts.push("Only adapt details as needed to make it tattooable, stencil-friendly, and appropriate for the selected placement.");
-      parts.push("Do not significantly redesign or drift away from the uploaded image.");
+      parts.push("Match the uploaded inspiration image closely.");
+      parts.push("Preserve composition, pose, structure, silhouette, and subject layout.");
+      parts.push("Stay visually close to the uploaded image while adapting only what is necessary for tattoo readability and placement.");
+      parts.push("Do not significantly redesign or reinterpret the image.");
     } else {
-      parts.push("Strongly follow the uploaded inspiration image for composition, silhouette, pose, major structure, shape language, and visual hierarchy where relevant.");
-      parts.push("Do not ignore the uploaded inspiration image.");
-      parts.push("Use the inspiration image as a real visual anchor, while still obeying all tattoo-readiness, stencil, text-accuracy, and body-placement rules.");
-      parts.push("Keep the final result tattooable and do not copy tiny non-tattooable details from the reference.");
+      parts.push("Use the uploaded inspiration image as a strong visual reference for composition, shape language, pose, and overall design direction.");
+      parts.push("Keep the result tattoo-ready and anatomically believable.");
     }
   }
 
@@ -258,10 +262,15 @@ async function handleGenerate(res, body) {
   }
 
   const prompt = buildPrompt(input);
-
   let img;
 
   if (input.reference_image) {
+    const strengthenedPrompt = input.convertReference
+      ? `${prompt} This is a close tattoo conversion task. Preserve the uploaded image's original composition, pose, structure, silhouette, and overall layout as closely as possible. Only change what is needed to make it tattoo-ready, stencil-friendly, readable, and correctly placed on the selected body area.`
+      : input.strictReference
+        ? `${prompt} Stay very close to the uploaded image. Preserve pose, composition, silhouette, design structure, and visual hierarchy while adapting only what is necessary for tattoo readability and body placement.`
+        : prompt;
+
     try {
       img = await client.images.generate({
         model: "gpt-image-1",
@@ -273,7 +282,7 @@ async function handleGenerate(res, body) {
             content: [
               {
                 type: "input_text",
-                text: prompt
+                text: strengthenedPrompt
               },
               {
                 type: "input_image",
@@ -286,7 +295,7 @@ async function handleGenerate(res, body) {
     } catch (err) {
       img = await client.images.generate({
         model: "gpt-image-1",
-        prompt,
+        prompt: strengthenedPrompt,
         size: "1024x1024",
         quality: "high",
       });
