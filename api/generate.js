@@ -71,6 +71,52 @@ function exactTextRule(text) {
   return `Use the EXACT text "${text}". Do NOT change spelling, wording, punctuation, capitalization, spacing, or grammar under any circumstance. Render the text character-for-character exactly as given.`;
 }
 
+function buildQualityRules(input) {
+  const rules = [
+    "Prioritize tattoo-ready output over painterly or photographic output.",
+    "Use clean bold linework, intentional negative space, and readable shapes.",
+    "Avoid muddy shading, blurry textures, soft airbrushed gradients, and tiny noisy details.",
+    "Do not add fake skin texture, paper texture, poster layouts, or mockup borders unless body mockup is explicitly requested.",
+    "Keep the composition strong from a distance and readable at tattoo scale.",
+    "Favor high-contrast black shapes and crisp edges."
+  ];
+
+  const lowerStyle = String(input.style || "").toLowerCase();
+  const lowerColor = String(input.color || "").toLowerCase();
+
+  if (!input.bodyMockup) {
+    rules.push("Use a plain light background and present the tattoo cleanly, centered, and clearly.");
+  }
+
+  if (lowerColor.includes("black") || lowerColor.includes("grey") || lowerColor.includes("sepia")) {
+    rules.push("Favor tattoo stencil sensibility: bold outlines, clean fills, limited tonal clutter, and strong readability.");
+  } else {
+    rules.push("Use color intentionally with tattoo-style color blocking. Avoid muddy multicolor gradients.");
+  }
+
+  if (lowerStyle.includes("fine line")) {
+    rules.push("Keep the lines delicate but still clean and tattooable. Avoid hairline details that would disappear in a real tattoo.");
+  }
+
+  if (lowerStyle.includes("traditional") || lowerStyle.includes("neo traditional") || lowerStyle.includes("japanese")) {
+    rules.push("Use strong line hierarchy, simplified color grouping, and classic tattoo readability.");
+  }
+
+  if (lowerStyle.includes("realism")) {
+    rules.push("Keep realism tattoo-friendly. Avoid hyper-photographic noise and preserve strong silhouette and readability.");
+  }
+
+  if (lowerStyle.includes("cartoony") || lowerStyle.includes("illustrative") || lowerStyle.includes("surreal")) {
+    rules.push("Keep shapes graphic and tattooable. Avoid washed-out rendering.");
+  }
+
+  if (input.mode === "script" || input.mode === "design_script") {
+    rules.push("Lettering must remain sharp, centered, readable, and free of decorative distortion that hurts clarity.");
+  }
+
+  return rules.join(" ");
+}
+
 function buildPrompt(input) {
   const parts = [
     "Create a tattoo concept or lettering design.",
@@ -80,13 +126,14 @@ function buildPrompt(input) {
     `Placement rule: ${buildPlacementRules(input.placement, input.scriptText, input.flowShape)}`,
     `Size: ${input.size}.`,
     `Color approach: ${input.color}.`,
+    `Quality rules: ${buildQualityRules(input)}`
   ];
 
   if (input.bodyMockup) {
     parts.push("Show the tattoo on skin with the correct body part clearly visible.");
     parts.push("Integrate the tattoo naturally on the body with realistic angle, orientation, and scale.");
   } else {
-    parts.push("Present the design on a clean background while still composing it correctly for the chosen body placement.");
+    parts.push("Present the design on a clean light background while still composing it correctly for the chosen body placement.");
   }
 
   if (input.mode === "design") {
@@ -164,7 +211,7 @@ export default async function handler(req, res) {
       model: "gpt-image-1",
       prompt,
       size: "1024x1024",
-      quality: "medium"
+      quality: "high"
     });
 
     const image = result?.data?.[0]?.b64_json;
@@ -176,6 +223,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       image,
       prompt_used: prompt,
+      quality_mode: "locked",
       reference_ignored: Boolean(input.reference_image)
     });
   } catch (err) {

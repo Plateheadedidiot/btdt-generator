@@ -1,8 +1,10 @@
 {
-  "name": "btdt-stripe-api",
+  "name": "btdt-quality-lock-api",
   "private": true,
+  "version": "1.0.0",
   "type": "module",
   "dependencies": {
-    "stripe": "^16.10.0"
+    "openai": "^4.104.0",
+    "stripe": "^18.2.0"
   }
 }
