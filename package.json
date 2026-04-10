@@ -1,7 +1,6 @@
 {
-  "name": "btdt-stripe-endpoints",
+  "name": "btdt-stripe-api",
   "private": true,
-  "version": "1.0.0",
   "type": "module",
   "dependencies": {
     "stripe": "^16.10.0"
