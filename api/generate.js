@@ -205,7 +205,10 @@ function buildPrompt(input) {
   }
 
   if (input.reference_image) {
-    parts.push("Use the supplied reference image only as inspiration for composition, mood, or elements when relevant, while still obeying all tattoo-readiness and body-placement rules.");
+    parts.push("Strongly follow the uploaded inspiration image for composition, silhouette, pose, major structure, shape language, and visual hierarchy where relevant.");
+    parts.push("Do not ignore the uploaded inspiration image.");
+    parts.push("Use the inspiration image as a real visual anchor, while still obeying all tattoo-readiness, stencil, text-accuracy, and body-placement rules.");
+    parts.push("Keep the final result tattooable and do not copy tiny non-tattooable details from the reference.");
   }
 
   return parts.join(" ");
@@ -238,12 +241,46 @@ async function handleGenerate(res, body) {
 
   const prompt = buildPrompt(input);
 
-  const img = await client.images.generate({
-    model: "gpt-image-1",
-    prompt,
-    size: "1024x1024",
-    quality: "high",
-  });
+  let img;
+
+  if (input.reference_image) {
+    try {
+      img = await client.images.generate({
+        model: "gpt-image-1",
+        size: "1024x1024",
+        quality: "high",
+        input: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "input_text",
+                text: prompt
+              },
+              {
+                type: "input_image",
+                image_data: input.reference_image
+              }
+            ]
+          }
+        ]
+      });
+    } catch (err) {
+      img = await client.images.generate({
+        model: "gpt-image-1",
+        prompt,
+        size: "1024x1024",
+        quality: "high",
+      });
+    }
+  } else {
+    img = await client.images.generate({
+      model: "gpt-image-1",
+      prompt,
+      size: "1024x1024",
+      quality: "high",
+    });
+  }
 
   const image = img?.data?.[0]?.b64_json;
   if (!image) {
@@ -253,6 +290,7 @@ async function handleGenerate(res, body) {
   return send(res, 200, {
     image,
     prompt_used: prompt,
+    used_reference_image: !!input.reference_image,
   });
 }
 
