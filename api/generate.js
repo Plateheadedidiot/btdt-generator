@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import crypto from "crypto";
+import fetch from "node-fetch";
 
 export const config = {
   api: { bodyParser: false },
