@@ -205,10 +205,22 @@ function buildPrompt(input) {
   }
 
   if (input.reference_image) {
-    parts.push("Strongly follow the uploaded inspiration image for composition, silhouette, pose, major structure, shape language, and visual hierarchy where relevant.");
-    parts.push("Do not ignore the uploaded inspiration image.");
-    parts.push("Use the inspiration image as a real visual anchor, while still obeying all tattoo-readiness, stencil, text-accuracy, and body-placement rules.");
-    parts.push("Keep the final result tattooable and do not copy tiny non-tattooable details from the reference.");
+    if (input.convertReference) {
+      parts.push("Convert the uploaded inspiration image into a tattoo-ready design.");
+      parts.push("Preserve the major composition, subject, pose, and recognizable structure from the uploaded image.");
+      parts.push("Simplify or adapt the image into bold, tattooable linework, strong shapes, readable negative space, and stencil-friendly design logic.");
+      parts.push("Do not make it a photo edit. Reinterpret it as a tattoo design while staying faithful to the source image.");
+    } else if (input.strictReference) {
+      parts.push("Match the uploaded inspiration image as closely as possible.");
+      parts.push("Preserve composition, pose, structure, silhouette, and layout.");
+      parts.push("Only adapt details as needed to make it tattooable, stencil-friendly, and appropriate for the selected placement.");
+      parts.push("Do not significantly redesign or drift away from the uploaded image.");
+    } else {
+      parts.push("Strongly follow the uploaded inspiration image for composition, silhouette, pose, major structure, shape language, and visual hierarchy where relevant.");
+      parts.push("Do not ignore the uploaded inspiration image.");
+      parts.push("Use the inspiration image as a real visual anchor, while still obeying all tattoo-readiness, stencil, text-accuracy, and body-placement rules.");
+      parts.push("Keep the final result tattooable and do not copy tiny non-tattooable details from the reference.");
+    }
   }
 
   return parts.join(" ");
@@ -228,15 +240,21 @@ async function handleGenerate(res, body) {
     fontStyle: clean(body.fontStyle, "fine line cursive"),
     flowShape: clean(body.flowShape, "straight line"),
     bodyMockup: !!body.bodyMockup,
+    strictReference: !!body.strictReference,
+    convertReference: !!body.convertReference,
     reference_image: body.reference_image || null,
   };
 
-  if ((input.mode === "design" || input.mode === "design_script") && !input.prompt) {
+  if ((input.mode === "design" || input.mode === "design_script") && !input.prompt && !input.convertReference) {
     return send(res, 400, { error: "Missing design prompt" });
   }
 
   if ((input.mode === "script" || input.mode === "design_script") && !input.scriptText) {
     return send(res, 400, { error: "Missing script text" });
+  }
+
+  if (input.convertReference && !input.reference_image) {
+    return send(res, 400, { error: "Upload an inspo image before using Convert to Tattoo." });
   }
 
   const prompt = buildPrompt(input);
@@ -291,6 +309,8 @@ async function handleGenerate(res, body) {
     image,
     prompt_used: prompt,
     used_reference_image: !!input.reference_image,
+    strict_reference: !!input.strictReference,
+    convert_reference: !!input.convertReference,
   });
 }
 
