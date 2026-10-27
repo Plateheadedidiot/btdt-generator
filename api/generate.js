@@ -1,7 +1,7 @@
-
 import OpenAI, { toFile } from "openai";
 import crypto from "crypto";
 import { createClient } from "../lib/supabase.js";
+import { getAuthenticatedUser } from "../lib/auth.js";
 
 export const config = {
   api: { bodyParser: false }
@@ -405,7 +405,7 @@ function decodeReference(reference) {
 }
 
 // GENERATE AND SAVE IMAGE TO SUPABASE
-async function handleGenerate(res, body) {
+async function handleGenerate(res, body, user = null) {
   if (!client) {
     return send(res, 503, {
       error:
@@ -520,6 +520,8 @@ async function handleGenerate(res, body) {
     .insert({
       prompt,
       image_b64: image,
+      user_id: user?.id || null,
+      email: user?.email || null,
       is_unlocked: false,
       is_public: false
     })
@@ -888,7 +890,7 @@ export default async function handler(req, res) {
 
   res.setHeader(
     "Access-Control-Allow-Headers",
-    "Content-Type, Stripe-Signature"
+    "Content-Type, Stripe-Signature, Authorization"
   );
 
   res.setHeader("Cache-Control", "no-store");
@@ -936,19 +938,26 @@ export default async function handler(req, res) {
     const action = inferAction(body);
 
     if (action === "generate") {
-      return await handleGenerate(res, body);
+      const user = await getAuthenticatedUser(req);
+
+      if (req.headers.authorization && !user) {
+        return send(res, 401, {
+          error: "Invalid or expired login token."
+        });
+      }
+
+      return await handleGenerate(res, body, user);
     }
 
-    if (action === "create_checkout_session") {
-      return await handleCheckout(res, body);
-    }
-
-    if (action === "verify_session") {
-      return await handleVerify(res, body);
-    }
-
-    if (action === "check_access") {
-      return await handleAccess(res);
+    if (
+      action === "create_checkout_session" ||
+      action === "verify_session" ||
+      action === "check_access"
+    ) {
+      return send(res, 503, {
+        error:
+          "This legacy action is disabled. Use the dedicated authenticated API endpoint."
+      });
     }
 
     return send(res, 400, {
