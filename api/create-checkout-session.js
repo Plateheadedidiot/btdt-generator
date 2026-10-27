@@ -1,13 +1,14 @@
 
 import Stripe from "stripe";
 import { createClient } from "../lib/supabase.js";
+import { getAuthenticatedUser } from "../lib/auth.js";
 import {
   handleOptions,
   setCors,
   jsonError
 } from "./_cors.js";
 
-// VERIFIED LIVE STRIPE PRICE IDS
+// VERIFIED LIVE STRIPE PRICES
 const UNLOCK_PRICE_ID =
   "price_1TlECVBlbWKxWiyBbNY7AcBa";
 
@@ -28,7 +29,7 @@ const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function clean(value) {
-  return String(value || "").trim();
+  return String(value ?? "").trim();
 }
 
 function validEmail(value) {
@@ -56,27 +57,19 @@ export default async function handler(req, res) {
 
   if (req.method !== "POST") {
     return jsonError(
-      res,
-      405,
-      "Method not allowed."
+      res, 405, "Method not allowed."
     );
   }
 
   if (!stripe) {
     return jsonError(
-      res,
-      503,
-      "STRIPE_SECRET_KEY is missing in Vercel."
+      res, 503, "STRIPE_SECRET_KEY is missing."
     );
   }
 
-  if (
-    !process.env.STRIPE_SECRET_KEY.startsWith("sk_live_")
-  ) {
+  if (!process.env.STRIPE_SECRET_KEY.startsWith("sk_live_")) {
     return jsonError(
-      res,
-      503,
-      "A live Stripe secret key is required."
+      res, 503, "A live Stripe secret key is required."
     );
   }
 
@@ -96,24 +89,32 @@ export default async function handler(req, res) {
           ? "subscription"
           : requestedMode;
 
-    if (
-      mode !== "unlock" &&
-      mode !== "subscription"
-    ) {
+    if (!["unlock", "subscription"].includes(mode)) {
       return jsonError(
-        res,
-        400,
-        "Invalid mode. Use unlock or subscription."
+        res, 400, "Invalid checkout mode."
       );
     }
 
-    const email = clean(body.email).toLowerCase();
+    // Verify the account from its login token.
+    // Never trust a user_id supplied by the browser.
+    const hasAuthorizationHeader =
+      Boolean(req.headers.authorization);
+
+    const user = await getAuthenticatedUser(req);
+
+    if (hasAuthorizationHeader && !user) {
+      return jsonError(
+        res, 401, "Invalid or expired login token."
+      );
+    }
+
+    const email = user
+      ? clean(user.email).toLowerCase()
+      : clean(body.email).toLowerCase();
 
     if (!validEmail(email)) {
       return jsonError(
-        res,
-        400,
-        "A valid email is required."
+        res, 400, "A valid email address is required."
       );
     }
 
@@ -121,8 +122,7 @@ export default async function handler(req, res) {
       body.imageId || body.image_id
     );
 
-    // A single-image purchase must refer to
-    // a real image saved in Supabase.
+    // Confirm this image exists and is not unlocked.
     if (mode === "unlock") {
       if (!UUID_PATTERN.test(imageId)) {
         return jsonError(
@@ -136,42 +136,52 @@ export default async function handler(req, res) {
 
       const lookup = await db
         .from("images")
-        .select("id,is_unlocked")
+        .select("id,user_id,is_unlocked")
         .eq("id", imageId)
         .maybeSingle();
 
       if (lookup.error) {
-        console.error(
-          "IMAGE LOOKUP ERROR:",
-          lookup.error
-        );
-
+        console.error("IMAGE LOOKUP ERROR", lookup.error);
         return jsonError(
-          res,
-          503,
-          "Unable to verify this image."
+          res, 503, "Unable to verify the image."
         );
       }
 
       if (!lookup.data) {
         return jsonError(
-          res,
-          404,
-          "Image not found in Supabase."
+          res, 404, "Image not found."
         );
       }
 
       if (lookup.data.is_unlocked) {
         return jsonError(
+          res, 409, "This image is already unlocked."
+        );
+      }
+
+      if (
+        user &&
+        lookup.data.user_id &&
+        lookup.data.user_id !== user.id
+      ) {
+        return jsonError(
+          res, 403, "This image belongs to another account."
+        );
+      }
+
+      // Signed-in purchases require the image to
+      // already belong to the authenticated account.
+      // The frontend will establish this association
+      // when we implement account-based generation.
+      if (user && !lookup.data.user_id) {
+        return jsonError(
           res,
           409,
-          "This image has already been unlocked."
+          "This image is not linked to your account yet."
         );
       }
     }
 
-    // Prices are decided by the backend.
-    // Browser-supplied Price IDs are ignored.
     const priceId = mode === "subscription"
       ? SUBSCRIPTION_PRICE_ID
       : UNLOCK_PRICE_ID;
@@ -180,51 +190,44 @@ export default async function handler(req, res) {
       source: "btdt-generator",
       purchase_mode: mode,
       email,
-      image_id: mode === "unlock"
-        ? imageId
-        : ""
+      image_id: mode === "unlock" ? imageId : "",
+      user_id: user?.id || ""
     };
 
-    const successUrl =
-      `${APP_URL}/generator.html?success=true&session_id={CHECKOUT_SESSION_ID}`;
+    const session =
+      await stripe.checkout.sessions.create({
+        mode: mode === "subscription"
+          ? "subscription"
+          : "payment",
 
-    const cancelUrl =
-      `${APP_URL}/generator.html?checkout=cancelled`;
+        customer_email: email,
 
-    const session = await stripe.checkout.sessions.create({
-      mode: mode === "subscription"
-        ? "subscription"
-        : "payment",
-
-      customer_email: email,
-
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1
-        }
-      ],
-
-      success_url: successUrl,
-      cancel_url: cancelUrl,
-
-      billing_address_collection: "auto",
-      allow_promotion_codes: true,
-
-      metadata,
-
-      ...(mode === "unlock"
-        ? {
-            payment_intent_data: {
-              metadata
-            }
+        line_items: [
+          {
+            price: priceId,
+            quantity: 1
           }
-        : {
-            subscription_data: {
-              metadata
+        ],
+
+        success_url:
+          `${APP_URL}/generator.html?success=true&session_id={CHECKOUT_SESSION_ID}`,
+
+        cancel_url:
+          `${APP_URL}/generator.html?checkout=cancelled`,
+
+        billing_address_collection: "auto",
+        allow_promotion_codes: true,
+
+        metadata,
+
+        ...(mode === "unlock"
+          ? {
+              payment_intent_data: { metadata }
             }
-          })
-    });
+          : {
+              subscription_data: { metadata }
+            })
+      });
 
     if (!session?.url) {
       return jsonError(
@@ -239,19 +242,17 @@ export default async function handler(req, res) {
       url: session.url,
       checkoutUrl: session.url,
       sessionId: session.id,
-      mode
+      mode,
+      accountLinked: Boolean(user)
     });
 
-  } catch (err) {
-    console.error(
-      "CREATE CHECKOUT SESSION ERROR:",
-      err
-    );
+  } catch (error) {
+    console.error("CHECKOUT ERROR:", error);
 
     return jsonError(
       res,
       500,
-      "Unable to create checkout session."
+      "Unable to create a checkout session."
     );
   }
 }
