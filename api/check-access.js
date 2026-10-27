@@ -1,54 +1,100 @@
-import Stripe from 'stripe';
-import { handleOptions, setCors, jsonError } from './_cors.js';
+import { createClient } from "../lib/supabase.js";
+import { getAuthenticatedUser } from "../lib/auth.js";
+import {
+  handleOptions,
+  setCors,
+  jsonError
+} from "./_cors.js";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '');
-
-function normalizeEmail(email = '') {
-  return String(email).trim().toLowerCase();
+function reply(res, status, data) {
+  res.setHeader("Cache-Control", "no-store");
+  return res.status(status).json(data);
 }
 
 export default async function handler(req, res) {
   if (handleOptions(req, res)) return;
+
   setCors(res);
 
-  if (req.method !== 'POST') {
-    return jsonError(res, 405, 'Method not allowed');
-  }
-
-  if (!process.env.STRIPE_SECRET_KEY) {
-    return jsonError(res, 500, 'Missing STRIPE_SECRET_KEY');
+  if (req.method !== "POST") {
+    return jsonError(
+      res, 405, "Method not allowed."
+    );
   }
 
   try {
-    const { email } = req.body || {};
-    const normalizedEmail = normalizeEmail(email);
+    // Verify the customer's Supabase login.
+    const user = await getAuthenticatedUser(req);
 
-    if (!normalizedEmail || !normalizedEmail.includes('@')) {
-      return jsonError(res, 400, 'Valid email is required');
+    if (!user) {
+      return reply(res, 401, {
+        ok: false,
+        error: "Please sign in to check your membership."
+      });
     }
 
-    const customers = await stripe.customers.list({ email: normalizedEmail, limit: 10 });
-    const customerIds = customers.data.map((c) => c.id);
+    const db = createClient();
 
-    let hasActiveSubscription = false;
+    // Only retrieve membership records explicitly
+    // associated with this authenticated account.
+    const result = await db
+      .from("subscribers")
+      .select(
+        "status,period_end,generations_used,generations_limit"
+      )
+      .eq("user_id", user.id)
+      .maybeSingle();
 
-    for (const customerId of customerIds) {
-      const subscriptions = await stripe.subscriptions.list({ customer: customerId, status: 'all', limit: 20 });
-      if (subscriptions.data.some((sub) => ['active', 'trialing'].includes(sub.status))) {
-        hasActiveSubscription = true;
-        break;
-      }
+    if (result.error) {
+      throw result.error;
     }
 
-    return res.status(200).json({
+    const subscription = result.data;
+
+    const activeStatus = [
+      "active",
+      "trialing"
+    ].includes(subscription?.status);
+
+    const withinPeriod = Boolean(
+      subscription?.period_end &&
+      new Date(subscription.period_end).getTime() >
+        Date.now()
+    );
+
+    const hasActiveSubscription =
+      activeStatus && withinPeriod;
+
+    const generationsUsed =
+      subscription?.generations_used ?? 0;
+
+    const generationsLimit =
+      subscription?.generations_limit ?? 150;
+
+    return reply(res, 200, {
       ok: true,
-      email: normalizedEmail,
+      userId: user.id,
       hasActiveSubscription,
+      subscriptionActive: hasActiveSubscription,
+      hasAccess: hasActiveSubscription,
       hasUnlockAccess: false,
-      note: 'Subscription status is durable. One-time unlocks should be verified with /api/verify-session right after checkout unless you later add a database.',
+      generationsUsed,
+      generationsLimit,
+      generationsRemaining: hasActiveSubscription
+        ? Math.max(
+            0,
+            generationsLimit - generationsUsed
+          )
+        : 0
     });
-  } catch (err) {
-    console.error('CHECK ACCESS ERROR:', err);
-    return jsonError(res, 500, err?.message || 'Failed to check access');
+
+  } catch (error) {
+    console.error("CHECK ACCESS ERROR:", error);
+
+    return reply(res, 500, {
+      ok: false,
+      error: "Unable to check membership."
+    });
   }
 }
+
