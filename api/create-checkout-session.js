@@ -1,4 +1,3 @@
-
 import Stripe from "stripe";
 import { createClient } from "../lib/supabase.js";
 import { getAuthenticatedUser } from "../lib/auth.js";
@@ -50,10 +49,19 @@ function getDatabase() {
 }
 
 export default async function handler(req, res) {
-  if (handleOptions(req, res)) return;
-
+  // Allow authenticated browser requests.
+  // This endpoint returns no private data
+  // unless the Supabase token is verified.
   setCors(res);
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization"
+  );
   res.setHeader("Cache-Control", "no-store");
+
+  if (req.method === "OPTIONS") {
+    return res.status(204).end();
+  }
 
   if (req.method !== "POST") {
     return jsonError(
@@ -61,19 +69,37 @@ export default async function handler(req, res) {
     );
   }
 
-  if (!stripe) {
-    return jsonError(
-      res, 503, "STRIPE_SECRET_KEY is missing."
-    );
-  }
-
-  if (!process.env.STRIPE_SECRET_KEY.startsWith("sk_live_")) {
-    return jsonError(
-      res, 503, "A live Stripe secret key is required."
-    );
-  }
-
+  // Require login BEFORE creating a live
+  // payment session.
   try {
+    const user = await getAuthenticatedUser(req);
+
+    if (!user || !validEmail(user.email)) {
+      return jsonError(
+        res,
+        401,
+        "Please sign in before purchasing."
+      );
+    }
+
+    if (!stripe) {
+      return jsonError(
+        res, 503, "STRIPE_SECRET_KEY is missing."
+      );
+    }
+
+    if (
+      !process.env.STRIPE_SECRET_KEY.startsWith(
+        "sk_live_"
+      )
+    ) {
+      return jsonError(
+        res,
+        503,
+        "A live Stripe secret key is required."
+      );
+    }
+
     const body = typeof req.body === "string"
       ? JSON.parse(req.body)
       : req.body || {};
@@ -91,38 +117,21 @@ export default async function handler(req, res) {
 
     if (!["unlock", "subscription"].includes(mode)) {
       return jsonError(
-        res, 400, "Invalid checkout mode."
+        res,
+        400,
+        "Invalid checkout mode."
       );
     }
 
-    // Verify the account from its login token.
-    // Never trust a user_id supplied by the browser.
-    const hasAuthorizationHeader =
-      Boolean(req.headers.authorization);
-
-    const user = await getAuthenticatedUser(req);
-
-    if (hasAuthorizationHeader && !user) {
-      return jsonError(
-        res, 401, "Invalid or expired login token."
-      );
-    }
-
-    const email = user
-      ? clean(user.email).toLowerCase()
-      : clean(body.email).toLowerCase();
-
-    if (!validEmail(email)) {
-      return jsonError(
-        res, 400, "A valid email address is required."
-      );
-    }
+    // Use ONLY the authenticated email.
+    // Ignore email and user_id supplied
+    // by the browser.
+    const email = clean(user.email).toLowerCase();
 
     const imageId = clean(
       body.imageId || body.image_id
     );
 
-    // Confirm this image exists and is not unlocked.
     if (mode === "unlock") {
       if (!UUID_PATTERN.test(imageId)) {
         return jsonError(
@@ -141,9 +150,15 @@ export default async function handler(req, res) {
         .maybeSingle();
 
       if (lookup.error) {
-        console.error("IMAGE LOOKUP ERROR", lookup.error);
+        console.error(
+          "IMAGE LOOKUP ERROR",
+          lookup.error
+        );
+
         return jsonError(
-          res, 503, "Unable to verify the image."
+          res,
+          503,
+          "Unable to verify the image."
         );
       }
 
@@ -155,33 +170,26 @@ export default async function handler(req, res) {
 
       if (lookup.data.is_unlocked) {
         return jsonError(
-          res, 409, "This image is already unlocked."
-        );
-      }
-
-      if (
-        user &&
-        lookup.data.user_id &&
-        lookup.data.user_id !== user.id
-      ) {
-        return jsonError(
-          res, 403, "This image belongs to another account."
-        );
-      }
-
-      // Signed-in purchases require the image to
-      // already belong to the authenticated account.
-      // The frontend will establish this association
-      // when we implement account-based generation.
-      if (user && !lookup.data.user_id) {
-        return jsonError(
           res,
           409,
-          "This image is not linked to your account yet."
+          "This image is already unlocked."
+        );
+      }
+
+      // Strict account ownership:
+      // unowned guest images cannot be
+      // purchased via authenticated checkout
+      // until securely associated with a user.
+      if (lookup.data.user_id !== user.id) {
+        return jsonError(
+          res,
+          403,
+          "This image is not linked to your account."
         );
       }
     }
 
+    // Prices are always determined server-side.
     const priceId = mode === "subscription"
       ? SUBSCRIPTION_PRICE_ID
       : UNLOCK_PRICE_ID;
@@ -190,8 +198,10 @@ export default async function handler(req, res) {
       source: "btdt-generator",
       purchase_mode: mode,
       email,
-      image_id: mode === "unlock" ? imageId : "",
-      user_id: user?.id || ""
+      image_id: mode === "unlock"
+        ? imageId
+        : "",
+      user_id: user.id
     };
 
     const session =
@@ -222,10 +232,14 @@ export default async function handler(req, res) {
 
         ...(mode === "unlock"
           ? {
-              payment_intent_data: { metadata }
+              payment_intent_data: {
+                metadata
+              }
             }
           : {
-              subscription_data: { metadata }
+              subscription_data: {
+                metadata
+              }
             })
       });
 
@@ -243,11 +257,14 @@ export default async function handler(req, res) {
       checkoutUrl: session.url,
       sessionId: session.id,
       mode,
-      accountLinked: Boolean(user)
+      accountLinked: true
     });
 
   } catch (error) {
-    console.error("CHECKOUT ERROR:", error);
+    console.error(
+      "CREATE CHECKOUT SESSION ERROR:",
+      error
+    );
 
     return jsonError(
       res,
