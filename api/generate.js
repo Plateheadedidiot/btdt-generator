@@ -474,82 +474,161 @@ async function handleGenerate(res, body, user = null) {
     });
   }
 
+  // Reserve a credit only after input validation.
+  // Guest generations remain unchanged until guest
+  // tracking and the frontend login are implemented.
+  const quotaDb = user ? getDatabase() : null;
+  let reservationId = null;
+
+  if (user) {
+    const { data: quota, error: quotaError } =
+      await quotaDb.rpc("reserve_generation", {
+        p_user_id: user.id
+      });
+
+    if (quotaError) {
+      console.error("GENERATION QUOTA ERROR:", quotaError);
+
+      return send(res, 503, {
+        error: "Unable to check generation allowance."
+      });
+    }
+
+    if (!quota?.allowed) {
+      return send(res, 429, {
+        error: quota?.reason === "subscription_limit"
+          ? "Your monthly generation limit has been reached."
+          : "Your three free generations for today have been used.",
+        limit: quota?.limit ?? null,
+        used: quota?.used ?? null
+      });
+    }
+
+    reservationId = quota.reservationId;
+
+    if (!reservationId) {
+      console.error("Quota reservation receipt missing");
+
+      return send(res, 503, {
+        error: "Unable to reserve a generation."
+      });
+    }
+  }
+
+  const finishReservation = async success => {
+    if (!reservationId) return;
+
+    const { data, error } = await quotaDb.rpc(
+      "finish_generation",
+      {
+        p_reservation_id: reservationId,
+        p_success: success
+      }
+    );
+
+    if (error || data !== true) {
+      console.error(
+        "GENERATION RESERVATION FINALIZATION:",
+        {
+          success,
+          error,
+          result: data,
+          reservationId
+        }
+      );
+    }
+  };
+
   const prompt = buildPrompt(input);
   let result;
 
-  if (input.reference_image) {
-    const { bytes, mime, ext } =
-      decodeReference(input.reference_image);
+  try {
+    if (input.reference_image) {
+      const { bytes, mime, ext } =
+        decodeReference(input.reference_image);
 
-    const referenceFile = await toFile(
-      bytes,
-      `reference.${ext}`,
-      { type: mime }
-    );
+      const referenceFile = await toFile(
+        bytes,
+        `reference.${ext}`,
+        { type: mime }
+      );
 
-    result = await client.images.edit({
-      model: IMAGE_MODEL,
-      image: referenceFile,
-      prompt,
-      size: "1024x1024",
-      quality: "high"
+      result = await client.images.edit({
+        model: IMAGE_MODEL,
+        image: referenceFile,
+        prompt,
+        size: "1024x1024",
+        quality: "high"
+      });
+    } else {
+      result = await client.images.generate({
+        model: IMAGE_MODEL,
+        prompt,
+        size: "1024x1024",
+        quality: "high"
+      });
+    }
+
+    const image = result?.data?.[0]?.b64_json;
+
+    if (!image) {
+      await finishReservation(false);
+
+      return send(res, 500, {
+        error: "OpenAI did not return an image."
+      });
+    }
+
+    // Save generated image privately in Supabase.
+    // The database creates a unique UUID for each image.
+    const db = getDatabase();
+
+    const saved = await db
+      .from("images")
+      .insert({
+        prompt,
+        image_b64: image,
+        user_id: user?.id || null,
+        email: user?.email || null,
+        is_unlocked: false,
+        is_public: false
+      })
+      .select("id")
+      .single();
+
+    if (saved.error || !saved.data?.id) {
+      await finishReservation(false);
+
+      console.error(
+        "SUPABASE IMAGE SAVE ERROR:",
+        saved.error
+      );
+
+      return send(res, 500, {
+        error:
+          "Image generated but could not be saved in Supabase. No payment was taken."
+      });
+    }
+
+    // Save succeeded. A finalization failure must
+    // not refund a successfully generated tattoo.
+    await finishReservation(true);
+
+    // Preserve the existing response format.
+    // Add imageId so the frontend can identify this design.
+    return send(res, 200, {
+      image,
+      imageId: saved.data.id,
+      prompt_used: prompt,
+      used_reference_image: !!input.reference_image,
+      strict_reference: input.strictReference,
+      convert_reference: input.convertReference
     });
-  } else {
-    result = await client.images.generate({
-      model: IMAGE_MODEL,
-      prompt,
-      size: "1024x1024",
-      quality: "high"
-    });
+  } catch (error) {
+    // Refund reserved credits if generation fails.
+    await finishReservation(false);
+    throw error;
   }
-
-  const image = result?.data?.[0]?.b64_json;
-
-  if (!image) {
-    return send(res, 500, {
-      error: "OpenAI did not return an image."
-    });
-  }
-
-  // NEW: Save generated image privately in Supabase.
-  // The database creates a unique UUID for each image.
-  const db = getDatabase();
-
-  const saved = await db
-    .from("images")
-    .insert({
-      prompt,
-      image_b64: image,
-      user_id: user?.id || null,
-      email: user?.email || null,
-      is_unlocked: false,
-      is_public: false
-    })
-    .select("id")
-    .single();
-
-  if (saved.error || !saved.data?.id) {
-    console.error(
-      "SUPABASE IMAGE SAVE ERROR:",
-      saved.error
-    );
-
-    return send(res, 500, {
-      error:
-        "Image generated but could not be saved in Supabase. No payment was taken."
-    });
-  }
-
-  // Preserve the existing response format.
-  // Add imageId so the frontend can identify this design.
-  return send(res, 200, {
-    image,
-    imageId: saved.data.id,
-    prompt_used: prompt,
-    used_reference_image: !!input.reference_image,
-    strict_reference: input.strictReference,
-    convert_reference: input.convertReference
-  });
 }
 
 // STRIPE API
@@ -664,7 +743,7 @@ async function handleCheckout(res, body) {
 
   const imageId = clean(body.imageId);
 
-  // NEW: Never charge for an image that
+  // Never charge for an image that
   // does not have a saved database record.
   if (!isSubscription) {
     if (!validImageId(imageId)) {
