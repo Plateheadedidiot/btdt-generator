@@ -1,4 +1,5 @@
-import OpenAI from "openai";
+
+import OpenAI, { toFile } from "openai";
 import crypto from "crypto";
 
 export const config = {
@@ -6,17 +7,28 @@ export const config = {
 };
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const STRIPE_SECRET_KEY = "sk_test_51TCnzSBUHTFhWUqxldvjBaduRf2CBUc1cZDJZLMF6CwxttaNnswEQWMxgUNgBTmtvLVV85wLvtNAg01PmOqona2l00zyU5KpvH";
-const STRIPE_WEBHOOK_SECRET = "whsec_ZWC5WSlRPsto5nymASBcyoldrO4cGfVx";
-const STRIPE_UNLOCK_PRICE_ID = "price_1TCo7VBUHTFhWUqxGsVwYNpX";
-const STRIPE_SUBSCRIPTION_PRICE_ID = "price_1TCo8kBUHTFhWUqxtJhaCIfH";
-const PUBLIC_APP_URL = "https://beentheredonetat.com";
+const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
+const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
 
-if (!OPENAI_API_KEY) {
-  throw new Error("Missing OPENAI_API_KEY in Vercel");
-}
+const STRIPE_UNLOCK_PRICE_ID =
+  process.env.STRIPE_UNLOCK_PRICE_ID ||
+  process.env.STRIPE_PRICE_UNLOCK;
 
-const client = new OpenAI({ apiKey: OPENAI_API_KEY });
+const STRIPE_SUBSCRIPTION_PRICE_ID =
+  process.env.STRIPE_SUBSCRIPTION_PRICE_ID ||
+  process.env.STRIPE_PRICE_SUB_MONTHLY;
+
+const PUBLIC_APP_URL =
+  process.env.PUBLIC_APP_URL ||
+  process.env.APP_URL ||
+  "https://beentheredonetat.com";
+
+const IMAGE_MODEL =
+  process.env.OPENAI_IMAGE_MODEL || "gpt-image-2";
+
+const client = OPENAI_API_KEY
+  ? new OpenAI({ apiKey: OPENAI_API_KEY })
+  : null;
 
 function send(res, code, data) {
   return res.status(code).json(data);
@@ -24,9 +36,15 @@ function send(res, code, data) {
 
 async function readBody(req) {
   const chunks = [];
-  for await (const c of req) {
-    chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c));
+
+  for await (const chunk of req) {
+    chunks.push(
+      Buffer.isBuffer(chunk)
+        ? chunk
+        : Buffer.from(chunk)
+    );
   }
+
   return Buffer.concat(chunks).toString();
 }
 
@@ -40,9 +58,13 @@ function parse(body) {
 
 function inferAction(body = {}) {
   if (body.action) return body.action;
-  if (body.sessionId || body.session_id) return "verify_session";
-  if (body.checkoutMode) return "create_checkout_session";
-  if (body.email && !body.prompt && !body.scriptText) return "check_access";
+  if (body.sessionId || body.session_id)
+    return "verify_session";
+  if (body.checkoutMode)
+    return "create_checkout_session";
+  if (body.email && !body.prompt && !body.scriptText)
+    return "check_access";
+
   return "generate";
 }
 
@@ -50,119 +72,152 @@ function clean(value, fallback = "") {
   return String(value ?? fallback).trim();
 }
 
-function placementRule(placement, scriptText = "", flowShape = "", bodyMockup = true) {
+function placementRule(
+  placement,
+  scriptText = "",
+  flowShape = "",
+  bodyMockup = true
+) {
   const p = clean(placement).toLowerCase();
-  const count = clean(scriptText).replace(/\s+/g, "").length;
+  const count = clean(scriptText)
+    .replace(/\s+/g, "").length;
 
   if (p === "knuckles" || p === "fingers") {
-    let splitRule = "Use true segmented finger placement with one character per segment when possible.";
-    if (count === 4) splitRule = "Place exactly one character on each finger or knuckle across one hand.";
-    if (count === 8) splitRule = "Split the text evenly across both hands with exactly one character per finger or knuckle.";
-    if (count > 0 && count !== 4 && count !== 8) {
-      splitRule = `The text has ${count} characters. Distribute it naturally across finger or knuckle segments while keeping each character clearly isolated and believable.`;
+    let rule =
+      "Use segmented finger placement, with one character per segment when possible.";
+
+    if (count === 4) {
+      rule =
+        "Place exactly one character on each of four fingers or knuckles.";
+    } else if (count === 8) {
+      rule =
+        "Split text evenly across both hands, one character per finger or knuckle.";
+    } else if (count > 0) {
+      rule =
+        `Distribute all ${count} characters naturally across finger or knuckle segments.`;
     }
 
     return [
-      "Do not treat this like normal straight-line typography.",
-      splitRule,
-      "Keep each character centered, separate, bold, readable, and realistically sized for actual finger or knuckle tattooing.",
-      "Avoid long connected cursive across multiple fingers unless explicitly required.",
-      String(flowShape).toLowerCase() === "straight line"
-        ? "Interpret straight line as segmented finger layout, not one connected line."
-        : "Only honor the requested flow if it still looks anatomically believable.",
+      "Do not use straight-line typography across the hand.",
+      rule,
+      "Keep letters centered, separate, bold and readable.",
+      "Use realistic finger spacing and proportions.",
       bodyMockup
-        ? "If showing the body, the hand angle must make the finger or knuckle placement clearly readable."
-        : "If not showing the body, still compose the text as a true segmented finger or knuckle tattoo."
+        ? "Show the fingers clearly on a believable hand."
+        : "Compose as a segmented knuckle or finger tattoo.",
+      flowShape === "straight line"
+        ? "Interpret straight line as segmented finger layout."
+        : "Honor flow only where anatomically appropriate."
     ].join(" ");
   }
 
   const rules = {
-    arm: "Fit the composition naturally to the outer arm with believable flow and real tattoo spacing.",
-    forearm: "Use a vertical composition that reads naturally down the forearm and fits the narrow limb cleanly.",
-    "upper arm": "Curve or shape the design slightly to suit the rounded upper arm rather than a flat poster layout.",
-    wrist: "Keep the design compact, simplified, and realistically scaled for a small wrist area.",
-    hand: "Fit the tattoo naturally to the hand with bold readability and realistic scale for that compact surface.",
-    thigh: "Use a larger, open composition that suits the broad flat thigh and does not feel tiny or cramped.",
-    calf: "Compose vertically or with a gentle natural curve so it fits the calf cleanly.",
-    shin: "Center the design vertically on the shin with strong readability for the narrow front-of-leg placement.",
-    ankle: "Keep the design small and naturally fitted to the ankle, with believable wrap or contour if needed.",
-    knee: "Build the design around the round knee shape so it feels intentional on a joint rather than flat or pasted on.",
-    chest: "Use a wider composition that suits the chest and follows natural torso flow.",
-    sternum: "Use a narrow centered vertical composition that follows the body centerline cleanly.",
-    stomach: "Shape the design naturally for the stomach area with believable scale and spacing.",
-    back: "Allow a larger composition with breathing room so it feels natural on the back.",
-    "shoulder blade": "Angle or curve the design to fit the shoulder blade instead of letting it sit flat and awkward.",
-    neck: "Keep the design compact and elegantly scaled for the neck with believable orientation.",
-    "behind ear": "Keep the tattoo very small, subtle, and precisely placed behind the ear with realistic scale.",
+    arm: "Follow natural arm curvature and spacing.",
+    forearm: "Use a vertical composition along the forearm.",
+    "upper arm": "Fit the rounded upper arm naturally.",
+    wrist: "Keep the design compact and readable.",
+    hand: "Use believable placement and scale on the hand.",
+    thigh: "Use an open composition suitable for the thigh.",
+    calf: "Flow vertically with the natural calf shape.",
+    shin: "Center the design along the shin.",
+    ankle: "Keep the design small and fitted to the ankle.",
+    knee: "Work with the curved shape of the knee.",
+    chest: "Follow the natural width and flow of the chest.",
+    sternum: "Use a narrow, centered vertical composition.",
+    stomach: "Follow the natural torso shape.",
+    back: "Use a balanced composition for the back.",
+    "shoulder blade": "Follow the shoulder blade's angle.",
+    neck: "Keep the tattoo compact and naturally oriented.",
+    "behind ear": "Use a small, subtle, realistic placement."
   };
 
-  return rules[p] || "Place the tattoo in a body-aware, anatomically believable way with realistic scale and orientation.";
+  return rules[p] ||
+    "Use anatomically believable tattoo placement.";
 }
 
 function buildQualityRules(input) {
-  const lowerStyle = clean(input.style).toLowerCase();
-  const lowerColor = clean(input.color).toLowerCase();
+  const style = clean(input.style).toLowerCase();
+  const color = clean(input.color).toLowerCase();
 
   const rules = [
-    "Create a tattoo-ready image, not a poster, painting, or graphic design mockup.",
-    "Prioritize tattoo stencil logic, tattooability, and strong tattoo composition.",
-    "Use clean bold linework, readable shapes, intentional negative space, crisp edges, and strong silhouette.",
-    "Favor print-ready tattoo stencil sensibility over decorative illustration sensibility.",
-    "Prioritize bold outlines, simplified shadow masses, and readable tattoo composition over realism or painterly finish.",
-    "Avoid blur, muddy rendering, soft painterly shading, noisy tiny details, fake paper texture, poster layouts, and overdesigned mockup framing.",
-    "The result should feel suitable for an actual tattoo artist to refine, stencil, or place."
+    "Create a tattoo-ready image.",
+    "Prioritize clean, bold linework.",
+    "Use strong silhouettes and intentional negative space.",
+    "Avoid muddy shading, blurry edges and tiny unnecessary details.",
+    "Keep the design readable and suitable for tattoo translation.",
+    "Use professional tattoo composition rather than a poster layout."
   ];
 
   if (input.bodyMockup) {
-    rules.push("This must look like a believable tattoo placement preview on a real body area, not a floating sticker on skin.");
-    rules.push("Respect realistic angle, scale, body curvature, natural body flow, and believable tattoo positioning.");
-    rules.push("Show enough of the relevant body part to make the placement obvious.");
-    rules.push("The tattoo must appear truly placed on the selected body part, not floating, pasted on, or positioned generically.");
-    rules.push("Body placement accuracy is critical. Respect the natural angle, curvature, scale, and orientation of the selected body part.");
-    rules.push("If the selected placement is small, keep the tattoo realistically small.");
-    rules.push("If the selected placement is forearm, shin, sternum, behind ear, fingers, knuckles, wrist, or neck, prioritize exact placement realism over creativity.");
+    rules.push(
+      "Show the tattoo naturally integrated on the selected body area.",
+      "Use believable skin, anatomy, proportions and scale.",
+      "The tattoo must not look like a floating sticker.",
+      "Make the placement clearly visible."
+    );
   } else {
-    rules.push("Show the design cleanly on a plain light background while still composing it specifically for the selected body placement.");
+    rules.push(
+      "Display the artwork clearly on a plain light background.",
+      "Keep the design appropriate for the requested body placement."
+    );
   }
 
   if (
-    lowerColor.includes("black") ||
-    lowerColor.includes("grey") ||
-    lowerColor.includes("sepia") ||
-    lowerColor.includes("ink only")
+    color.includes("black") ||
+    color.includes("grey") ||
+    color.includes("sepia") ||
+    color.includes("ink only")
   ) {
-    rules.push("Favor strong black shapes, high contrast, clear stencil readability, and simplified tattoo-ready detail.");
+    rules.push(
+      "Use high contrast, bold black shapes and readable shading."
+    );
   } else {
-    rules.push("Use color like a tattoo artist would: bold, intentional color grouping with tattoo-style readability, not muddy painterly blending.");
+    rules.push(
+      "Use intentional tattoo-style color grouping."
+    );
   }
 
-  if (lowerStyle.includes("fine line")) {
-    rules.push("Keep the lines delicate but still tattooable and readable. Avoid hairline detail that would disappear in a real tattoo.");
+  if (style.includes("fine line")) {
+    rules.push(
+      "Use delicate but tattooable linework."
+    );
   }
 
-  if (lowerStyle.includes("traditional") || lowerStyle.includes("neo traditional")) {
-    rules.push("Use classic tattoo readability, strong line hierarchy, simplified color blocking, and durable tattoo composition.");
+  if (style.includes("traditional")) {
+    rules.push(
+      "Use classic tattoo outlines, strong contrast and durable composition."
+    );
   }
 
-  if (lowerStyle.includes("japanese")) {
-    rules.push("Keep the flow body-aware and compositionally intentional, with bold readable masses and strong tattoo rhythm.");
+  if (style.includes("japanese")) {
+    rules.push(
+      "Use strong Japanese tattoo flow and readable graphic masses."
+    );
   }
 
-  if (lowerStyle.includes("realism")) {
-    rules.push("Keep realism tattoo-friendly. Preserve strong silhouette and readability instead of photographic noise.");
+  if (style.includes("realism")) {
+    rules.push(
+      "Preserve tattoo-friendly contrast and avoid photographic noise."
+    );
   }
 
   if (
-    lowerStyle.includes("cartoony") ||
-    lowerStyle.includes("illustrative") ||
-    lowerStyle.includes("surreal") ||
-    lowerStyle.includes("surrealism")
+    style.includes("cartoony") ||
+    style.includes("illustrative") ||
+    style.includes("surreal")
   ) {
-    rules.push("Keep the shapes graphic, bold, and tattooable rather than soft or painterly.");
+    rules.push(
+      "Use clean graphic shapes and bold tattooable illustration."
+    );
   }
 
-  if (input.mode === "script" || input.mode === "design_script") {
-    rules.push("Lettering must remain sharp, readable, centered, and convincingly tattooable.");
+  if (
+    input.mode === "script" ||
+    input.mode === "design_script"
+  ) {
+    rules.push(
+      "Keep all lettering sharp, readable and correctly spelled."
+    );
   }
 
   return rules.join(" ");
@@ -170,67 +225,155 @@ function buildQualityRules(input) {
 
 function buildPrompt(input) {
   const parts = [
-    "Create a tattoo-ready image.",
+    "Create a professional tattoo-ready image.",
     `Placement: ${input.placement}.`,
-    `Placement guidance: ${placementRule(input.placement, input.scriptText, input.flowShape, input.bodyMockup)}`,
+    `Placement guidance: ${placementRule(
+      input.placement,
+      input.scriptText,
+      input.flowShape,
+      input.bodyMockup
+    )}`,
     `Size: ${input.size}.`,
     `Color: ${input.color}.`,
     `Quality rules: ${buildQualityRules(input)}`
   ];
 
   if (input.mode === "design") {
-    parts.push(`Tattoo style: ${input.style}.`);
-    if (input.prompt) parts.push(`Design idea: ${input.prompt}.`);
-    parts.push("Make the final result clean, readable, body-aware, and suitable for tattoo translation.");
+    parts.push(
+      `Tattoo style: ${input.style}.`
+    );
+
+    if (input.prompt) {
+      parts.push(
+        `Design idea: ${input.prompt}.`
+      );
+    }
   } else if (input.mode === "script") {
-    parts.push(`Use the EXACT text "${input.scriptText}". Do not change spelling, wording, capitalization, punctuation, grammar, or spacing.`);
-    parts.push(`Font style: ${input.fontStyle}.`);
-    parts.push(`Flow layout: ${input.flowShape}.`);
-    if (input.secondLine) {
-      parts.push(`Add a second line using the EXACT text "${input.secondLine}". Do not alter it.`);
-    }
-    if (input.emphasisWord) {
-      parts.push(`Emphasize the EXACT word "${input.emphasisWord}".`);
-    }
-    parts.push("Keep the lettering clean, readable, tattooable, and accurately placed for the selected body part.");
+    parts.push(
+      `Use the EXACT text "${input.scriptText}".`,
+      "Do not change spelling, capitalization or punctuation.",
+      `Font style: ${input.fontStyle}.`,
+      `Flow layout: ${input.flowShape}.`
+    );
   } else {
-    parts.push(`Tattoo style: ${input.style}.`);
-    if (input.prompt) parts.push(`Design idea: ${input.prompt}.`);
-    parts.push(`Add script using the EXACT text "${input.scriptText}". Do not change spelling, wording, capitalization, punctuation, grammar, or spacing.`);
-    parts.push(`Font style: ${input.fontStyle}.`);
-    parts.push(`Flow layout: ${input.flowShape}.`);
-    if (input.secondLine) {
-      parts.push(`Add a second line using the EXACT text "${input.secondLine}". Do not alter it.`);
-    }
-    if (input.emphasisWord) {
-      parts.push(`Emphasize the EXACT word "${input.emphasisWord}".`);
-    }
-    parts.push("The design and lettering must feel unified, intentional, tattoo-ready, and anatomically believable.");
+    parts.push(
+      `Tattoo style: ${input.style}.`,
+      `Design idea: ${input.prompt}.`,
+      `Add the EXACT text "${input.scriptText}".`,
+      `Font style: ${input.fontStyle}.`,
+      `Flow layout: ${input.flowShape}.`
+    );
+  }
+
+  if (input.secondLine) {
+    parts.push(
+      `Add a second line with EXACT text "${input.secondLine}".`
+    );
+  }
+
+  if (input.emphasisWord) {
+    parts.push(
+      `Emphasize the word "${input.emphasisWord}".`
+    );
   }
 
   if (input.reference_image) {
     if (input.convertReference) {
-      parts.push("Convert the uploaded inspiration image into a tattoo-ready version of the SAME core design.");
-      parts.push("Preserve the original composition, pose, silhouette, structure, and subject arrangement as closely as possible.");
-      parts.push("Do not creatively redesign the image unless necessary for tattoo readability.");
-      parts.push("Only simplify details, strengthen linework, improve contrast, and adapt the image to make it tattooable and stencil-friendly.");
-      parts.push("Keep the final design visually very close to the uploaded image.");
-      parts.push("Do not drift into a different concept, different pose, different composition, or different design language.");
+      parts.push(
+        "Convert the supplied reference image into a tattoo-ready design.",
+        "Preserve its composition, subject, pose and silhouette.",
+        "Only simplify elements necessary for tattoo readability.",
+        "Do not replace the reference with a different concept."
+      );
     } else if (input.strictReference) {
-      parts.push("Match the uploaded inspiration image closely.");
-      parts.push("Preserve composition, pose, structure, silhouette, and subject layout.");
-      parts.push("Stay visually close to the uploaded image while adapting only what is necessary for tattoo readability and placement.");
-      parts.push("Do not significantly redesign or reinterpret the image.");
+      parts.push(
+        "Match the reference image very closely.",
+        "Preserve the subject, composition and silhouette."
+      );
     } else {
-      parts.push("Use the uploaded inspiration image as a strong visual reference for composition, shape language, pose, and overall design direction.");
-      parts.push("Keep the result tattoo-ready and anatomically believable.");
+      parts.push(
+        "Use the reference image as inspiration for composition and visual direction."
+      );
     }
   }
 
   return parts.join(" ");
 }
 
+function decodeReferenceImage(reference) {
+  const raw = String(reference || "");
+
+  const match =
+    /^data:(image\/(?:png|jpeg|webp));base64,(.+)$/s.exec(raw);
+
+  const base64 = (match ? match[2] : raw)
+    .replace(/\s/g, "");
+
+  if (
+    !base64 ||
+    !/^[A-Za-z0-9+/]+={0,2}$/.test(base64)
+  ) {
+    throw Object.assign(
+      new Error("Invalid reference image encoding."),
+      { status: 400 }
+    );
+  }
+
+  const bytes = Buffer.from(base64, "base64");
+
+  if (
+    bytes.length === 0 ||
+    bytes.length > 15 * 1024 * 1024
+  ) {
+    throw Object.assign(
+      new Error(
+        "Reference image must be valid and smaller than 15 MB."
+      ),
+      { status: 400 }
+    );
+  }
+
+  let mime = match?.[1];
+
+  if (!mime) {
+    if (
+      bytes.subarray(0, 3).toString("hex") === "ffd8ff"
+    ) {
+      mime = "image/jpeg";
+    } else if (
+      bytes.subarray(0, 4).toString("ascii") === "RIFF"
+    ) {
+      mime = "image/webp";
+    } else if (
+      bytes.subarray(0, 8).toString("hex") ===
+      "89504e470d0a1a0a"
+    ) {
+      mime = "image/png";
+    } else {
+      throw Object.assign(
+        new Error("Reference image must be PNG, JPEG or WebP."),
+        { status: 400 }
+      );
+    }
+  }
+
+  const ext =
+    mime === "image/jpeg"
+      ? "jpg"
+      : mime === "image/webp"
+        ? "webp"
+        : "png";
+
+  return { bytes, mime, ext };
+}
+
 async function handleGenerate(res, body) {
+  if (!client) {
+    return send(res, 503, {
+      error: "OPENAI_API_KEY is not configured in Vercel."
+    });
+  }
+
   const input = {
     mode: body.mode || "design",
     prompt: clean(body.prompt),
@@ -241,233 +384,429 @@ async function handleGenerate(res, body) {
     placement: clean(body.placement, "forearm"),
     size: clean(body.size, "medium"),
     color: clean(body.color, "black and grey"),
-    fontStyle: clean(body.fontStyle, "fine line cursive"),
-    flowShape: clean(body.flowShape, "straight line"),
+    fontStyle: clean(
+      body.fontStyle,
+      "fine line cursive"
+    ),
+    flowShape: clean(
+      body.flowShape,
+      "straight line"
+    ),
     bodyMockup: !!body.bodyMockup,
     strictReference: !!body.strictReference,
     convertReference: !!body.convertReference,
-    reference_image: body.reference_image || null,
+    reference_image: body.reference_image || null
   };
 
-  if ((input.mode === "design" || input.mode === "design_script") && !input.prompt && !input.convertReference) {
-    return send(res, 400, { error: "Missing design prompt" });
-  }
-
-  if ((input.mode === "script" || input.mode === "design_script") && !input.scriptText) {
-    return send(res, 400, { error: "Missing script text" });
-  }
-
-  if (input.convertReference && !input.reference_image) {
-    return send(res, 400, { error: "Upload an inspo image before using Convert to Tattoo." });
-  }
-
-  const prompt = buildPrompt(input);
-  let img;
-
-  if (input.reference_image) {
-    const strengthenedPrompt = input.convertReference
-      ? `${prompt} This is a close tattoo conversion task. Preserve the uploaded image's original composition, pose, structure, silhouette, and overall layout as closely as possible. Only change what is needed to make it tattoo-ready, stencil-friendly, readable, and correctly placed on the selected body area.`
-      : input.strictReference
-        ? `${prompt} Stay very close to the uploaded image. Preserve pose, composition, silhouette, design structure, and visual hierarchy while adapting only what is necessary for tattoo readability and body placement.`
-        : prompt;
-
-    try {
-      img = await client.images.generate({
-        model: "gpt-image-1",
-        size: "1024x1024",
-        quality: "high",
-        input: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "input_text",
-                text: strengthenedPrompt
-              },
-              {
-                type: "input_image",
-                image_data: input.reference_image
-              }
-            ]
-          }
-        ]
-      });
-    } catch (err) {
-      img = await client.images.generate({
-        model: "gpt-image-1",
-        prompt: strengthenedPrompt,
-        size: "1024x1024",
-        quality: "high",
-      });
-    }
-  } else {
-    img = await client.images.generate({
-      model: "gpt-image-1",
-      prompt,
-      size: "1024x1024",
-      quality: "high",
+  if (
+    !["design", "script", "design_script"]
+      .includes(input.mode)
+  ) {
+    return send(res, 400, {
+      error: "Invalid generation mode."
     });
   }
 
-  const image = img?.data?.[0]?.b64_json;
+  if (
+    input.mode !== "script" &&
+    !input.prompt &&
+    !input.convertReference
+  ) {
+    return send(res, 400, {
+      error: "Missing design prompt."
+    });
+  }
+
+  if (
+    input.mode !== "design" &&
+    !input.scriptText
+  ) {
+    return send(res, 400, {
+      error: "Missing script text."
+    });
+  }
+
+  if (
+    input.convertReference &&
+    !input.reference_image
+  ) {
+    return send(res, 400, {
+      error: "Upload an inspiration image first."
+    });
+  }
+
+  const prompt = buildPrompt(input);
+  let response;
+
+  if (input.reference_image) {
+    const { bytes, mime, ext } =
+      decodeReferenceImage(input.reference_image);
+
+    const referenceFile = await toFile(
+      bytes,
+      `reference.${ext}`,
+      { type: mime }
+    );
+
+    response = await client.images.edit({
+      model: IMAGE_MODEL,
+      image: referenceFile,
+      prompt,
+      size: "1024x1024",
+      quality: "high"
+    });
+  } else {
+    response = await client.images.generate({
+      model: IMAGE_MODEL,
+      prompt,
+      size: "1024x1024",
+      quality: "high"
+    });
+  }
+
+  const image = response?.data?.[0]?.b64_json;
+
   if (!image) {
-    return send(res, 500, { error: "No image returned from OpenAI" });
+    return send(res, 500, {
+      error: "OpenAI did not return an image."
+    });
   }
 
   return send(res, 200, {
     image,
     prompt_used: prompt,
     used_reference_image: !!input.reference_image,
-    strict_reference: !!input.strictReference,
-    convert_reference: !!input.convertReference,
+    strict_reference: input.strictReference,
+    convert_reference: input.convertReference
   });
 }
 
-async function stripeFetch(path, method = "POST", form = null) {
-  const body = form ? new URLSearchParams(form).toString() : undefined;
-
-  const res = await fetch("https://api.stripe.com" + path, {
-    method,
-    headers: {
-      Authorization: `Bearer ${STRIPE_SECRET_KEY}`,
-      ...(body ? { "Content-Type": "application/x-www-form-urlencoded" } : {}),
-    },
-    body,
-  });
-
-  const text = await res.text();
-
-  let data;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    throw new Error(text || `Stripe error ${res.status}`);
+async function stripeFetch(
+  path,
+  method = "POST",
+  form = null
+) {
+  if (!STRIPE_SECRET_KEY) {
+    throw new Error(
+      "STRIPE_SECRET_KEY is not configured."
+    );
   }
 
-  if (!res.ok) {
-    throw new Error(data?.error?.message || `Stripe error ${res.status}`);
+  const body = form
+    ? new URLSearchParams(form).toString()
+    : undefined;
+
+  const response = await fetch(
+    "https://api.stripe.com" + path,
+    {
+      method,
+      headers: {
+        Authorization: `Bearer ${STRIPE_SECRET_KEY}`,
+        ...(body
+          ? {
+              "Content-Type":
+                "application/x-www-form-urlencoded"
+            }
+          : {})
+      },
+      body
+    }
+  );
+
+  const raw = await response.text();
+  let data;
+
+  try {
+    data = JSON.parse(raw);
+  } catch {
+    throw new Error(
+      `Stripe returned an invalid response (${response.status}).`
+    );
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      data?.error?.message ||
+      `Stripe error ${response.status}`
+    );
   }
 
   return data;
 }
 
 async function handleCheckout(res, body) {
-  const rawMode = clean(body.checkoutMode).toLowerCase();
-  const mode = rawMode === "subscription" ? "subscription" : "payment";
+  const rawMode =
+    clean(body.checkoutMode).toLowerCase();
+
+  const mode =
+    ["subscription", "subscribe"].includes(rawMode)
+      ? "subscription"
+      : "payment";
 
   const price =
     mode === "subscription"
       ? STRIPE_SUBSCRIPTION_PRICE_ID
       : STRIPE_UNLOCK_PRICE_ID;
 
-  if (!STRIPE_SECRET_KEY) {
-    return send(res, 500, { error: "Missing STRIPE_SECRET_KEY" });
-  }
-
   if (!price) {
-    return send(res, 500, { error: "Missing Stripe price ID" });
+    return send(res, 500, {
+      error: "Stripe price ID is not configured."
+    });
   }
 
-  if (!body.email) {
-    return send(res, 400, { error: "Missing email" });
-  }
+  const email = clean(body.email)
+    .toLowerCase();
 
-  const session = await stripeFetch("/v1/checkout/sessions", "POST", {
-    mode,
-    success_url: `${PUBLIC_APP_URL}/generator.html?success=true&session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${PUBLIC_APP_URL}/generator.html`,
-    "line_items[0][price]": price,
-    "line_items[0][quantity]": "1",
-    customer_email: body.email,
-  });
-
-  if (!session?.url) {
-    return send(res, 500, { error: "Stripe did not return a checkout URL" });
-  }
-
-  return send(res, 200, { url: session.url });
-}
-
-async function handleVerify(res, body) {
-  const sessionId = body.sessionId || body.session_id;
-
-  if (!sessionId) {
-    return send(res, 400, { error: "Missing sessionId" });
+  if (!email || !email.includes("@")) {
+    return send(res, 400, {
+      error: "Valid email required."
+    });
   }
 
   const session = await stripeFetch(
-    `/v1/checkout/sessions/${encodeURIComponent(sessionId)}`,
+    "/v1/checkout/sessions",
+    "POST",
+    {
+      mode,
+      "metadata[purchase_mode]":
+        mode === "subscription"
+          ? "subscription"
+          : "unlock",
+      success_url:
+        `${PUBLIC_APP_URL}/generator.html?success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url:
+        `${PUBLIC_APP_URL}/generator.html`,
+      "line_items[0][price]": price,
+      "line_items[0][quantity]": "1",
+      customer_email: email
+    }
+  );
+
+  if (!session?.url) {
+    return send(res, 500, {
+      error: "Stripe did not return a checkout URL."
+    });
+  }
+
+  return send(res, 200, {
+    url: session.url
+  });
+}
+
+async function handleVerify(res, body) {
+  const sessionId =
+    body.sessionId || body.session_id;
+
+  if (
+    !sessionId ||
+    !/^cs_(test_)?[A-Za-z0-9]+$/.test(sessionId)
+  ) {
+    return send(res, 400, {
+      error: "Invalid checkout session ID."
+    });
+  }
+
+  const session = await stripeFetch(
+    `/v1/checkout/sessions/${encodeURIComponent(
+      sessionId
+    )}`,
     "GET"
   );
 
   return send(res, 200, {
-    success: session.payment_status === "paid",
-    mode: session.mode,
+    success:
+      session.payment_status === "paid",
+    mode: session.mode
   });
 }
 
 async function handleAccess(res) {
   return send(res, 200, {
     hasAccess: false,
-    subscriptionActive: false,
+    subscriptionActive: false
   });
 }
 
-function verifyStripe(sig, payload) {
+function verifyStripe(signature, payload) {
+  if (
+    !STRIPE_WEBHOOK_SECRET ||
+    !signature
+  ) {
+    throw new Error(
+      "Webhook signature configuration missing."
+    );
+  }
+
   const parts = Object.fromEntries(
-    sig.split(",").map((p) => {
-      const [k, v] = p.split("=");
-      return [k, v];
+    signature.split(",").map((p) => {
+      const [key, value] = p.split("=");
+      return [key, value];
     })
   );
 
+  const timestamp = Number(parts.t);
+
+  if (
+    !Number.isFinite(timestamp) ||
+    Math.abs(Date.now() / 1000 - timestamp) > 300
+  ) {
+    throw new Error("Expired Stripe signature.");
+  }
+
   const signed = crypto
-    .createHmac("sha256", STRIPE_WEBHOOK_SECRET)
+    .createHmac(
+      "sha256",
+      STRIPE_WEBHOOK_SECRET
+    )
     .update(parts.t + "." + payload)
     .digest("hex");
 
-  if (signed !== parts.v1) {
-    throw new Error("Bad signature");
+  const expected = Buffer.from(
+    signed,
+    "hex"
+  );
+
+  const actual = Buffer.from(
+    parts.v1 || "",
+    "hex"
+  );
+
+  if (
+    expected.length !== actual.length ||
+    !crypto.timingSafeEqual(
+      expected,
+      actual
+    )
+  ) {
+    throw new Error(
+      "Invalid Stripe webhook signature."
+    );
   }
 }
 
-async function handleWebhook(req, res, raw) {
-  const sig = req.headers["stripe-signature"];
-  verifyStripe(sig, raw);
-  return send(res, 200, { received: true });
+async function handleWebhook(
+  req,
+  res,
+  raw
+) {
+  try {
+    verifyStripe(
+      req.headers["stripe-signature"],
+      raw
+    );
+
+    return send(res, 200, {
+      received: true
+    });
+  } catch (err) {
+    return send(res, 400, {
+      error: "Webhook verification failed."
+    });
+  }
 }
 
 export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Stripe-Signature");
+  res.setHeader(
+    "Access-Control-Allow-Origin",
+    "*"
+  );
+
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET, POST, OPTIONS"
+  );
+
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Stripe-Signature"
+  );
 
   if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
 
   if (req.method === "GET") {
-    return send(res, 200, { ok: true });
+    return send(res, 200, {
+      ok: true
+    });
   }
 
-  const raw = await readBody(req);
+  if (req.method !== "POST") {
+    return send(res, 405, {
+      error: "Method not allowed."
+    });
+  }
 
   try {
+    const raw = await readBody(req);
+
     if (req.headers["stripe-signature"]) {
-      return await handleWebhook(req, res, raw);
+      return await handleWebhook(
+        req,
+        res,
+        raw
+      );
     }
 
     const body = parse(raw);
     const action = inferAction(body);
 
-    if (action === "generate") return await handleGenerate(res, body);
-    if (action === "create_checkout_session") return await handleCheckout(res, body);
-    if (action === "verify_session") return await handleVerify(res, body);
-    if (action === "check_access") return await handleAccess(res, body);
+    if (action === "generate") {
+      return await handleGenerate(
+        res,
+        body
+      );
+    }
 
-    return send(res, 400, { error: "Invalid action" });
-  } catch (e) {
-    console.error("API ERROR:", e);
-    return send(res, 500, { error: e?.message || "Server error" });
+    if (
+      action === "create_checkout_session"
+    ) {
+      return await handleCheckout(
+        res,
+        body
+      );
+    }
+
+    if (
+      action === "verify_session"
+    ) {
+      return await handleVerify(
+        res,
+        body
+      );
+    }
+
+    if (action === "check_access") {
+      return await handleAccess(res);
+    }
+
+    return send(res, 400, {
+      error: "Invalid action."
+    });
+  } catch (err) {
+    console.error(
+      "API ERROR:",
+      err
+    );
+
+    const status =
+      err?.status === 429
+        ? 429
+        : err?.status === 401
+          ? 502
+          : err?.status === 400
+            ? 400
+            : 500;
+
+    const message =
+      status === 429
+        ? "Image service rate limit reached. Try again shortly."
+        : status === 502
+          ? "OpenAI API key invalid or expired. Check Vercel."
+          : err?.message || "Server error.";
+
+    return send(res, status, {
+      error: message
+    });
   }
 }
