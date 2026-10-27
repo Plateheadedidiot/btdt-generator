@@ -590,6 +590,7 @@ async function handleGenerate(res, body, user = null) {
         image_b64: image,
         user_id: user?.id || null,
         email: user?.email || null,
+        generation_reservation_id: reservationId,
         is_unlocked: false,
         is_public: false
       })
