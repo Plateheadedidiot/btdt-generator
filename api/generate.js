@@ -558,14 +558,14 @@ async function handleGenerate(res, body, user = null) {
         image: referenceFile,
         prompt,
         size: "1024x1024",
-        quality: "high"
+        quality: "medium"
       });
     } else {
       result = await client.images.generate({
         model: IMAGE_MODEL,
         prompt,
         size: "1024x1024",
-        quality: "high"
+        quality: "medium"
       });
     }
 
@@ -1056,3 +1056,4 @@ export default async function handler(req, res) {
     });
   }
 }
+
